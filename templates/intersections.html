@@ -1,0 +1,243 @@
+{% extends "base.html" %}
+{% block title %}Intersections – Traffix{% endblock %}
+{% block extra_css %}
+<style>
+  .intersections-page {
+    padding: 80px 24px 80px;
+    min-height: 100vh;
+  }
+  .intersections-page .container { max-width: 1000px; }
+  .page-header {
+    margin-bottom: 40px;
+  }
+  .page-header .hero-title {
+    font-size: clamp(1.75rem, 4vw, 2.25rem);
+    margin-bottom: 8px;
+  }
+  .page-header .hero-subtitle {
+    color: var(--text-secondary);
+    margin-bottom: 0;
+  }
+  .add-form-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 24px;
+    margin-bottom: 32px;
+  }
+  .add-form-card h3 {
+    font-size: 1.125rem;
+    margin-bottom: 16px;
+  }
+  .add-form {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .add-form .input-group {
+    flex: 1;
+    min-width: 200px;
+    margin-bottom: 0;
+  }
+  .add-form .input-group input {
+    padding: 12px 16px;
+  }
+  .intersections-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 24px;
+  }
+  .intersection-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 24px;
+    transition: all var(--transition);
+    cursor: pointer;
+    text-decoration: none;
+    display: block;
+  }
+  .intersection-card:hover {
+    border-color: var(--border-strong);
+    transform: translateY(-4px);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3);
+  }
+  .intersection-card .int-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 16px;
+  }
+  .intersection-card .int-name {
+    font-size: 1.125rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 4px;
+  }
+  .intersection-card .int-location {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+  }
+  .int-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+  }
+  .int-status.active {
+    background: rgba(52, 211, 153, 0.15);
+    color: var(--success);
+  }
+  .int-status.maintenance {
+    background: rgba(251, 191, 36, 0.15);
+    color: var(--warning);
+  }
+  .int-status.inactive {
+    background: rgba(248, 113, 113, 0.15);
+    color: var(--error);
+  }
+  .int-status::before {
+    content: '';
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+  }
+  .intersection-card .lanes-preview {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+  }
+  .lane-indicator {
+    flex: 1;
+    text-align: center;
+    padding: 8px 4px;
+    background: var(--bg-elevated);
+    border-radius: var(--radius);
+    font-size: 0.7rem;
+  }
+  .lane-indicator .dir {
+    font-weight: 700;
+    font-size: 0.8rem;
+    margin-bottom: 2px;
+  }
+  .lane-indicator.active .dir { color: var(--success); }
+  .lane-indicator.inactive .dir { color: var(--error); }
+  .lane-indicator .cam-icon {
+    font-size: 0.9rem;
+  }
+  .intersection-card .int-stats {
+    display: flex;
+    gap: 20px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+  }
+  .int-stat {
+    text-align: center;
+    flex: 1;
+  }
+  .int-stat .count {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--accent);
+  }
+  .int-stat .label {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--text-secondary);
+  }
+</style>
+{% endblock %}
+{% block body %}
+<header>
+  <nav class="nav container">
+    <a href="{{ url_for('index') }}" class="nav-brand">Traff<span>ix</span></a>
+    <div class="nav-links">
+      <a href="{{ url_for('dashboard') }}" class="btn btn-ghost">Dashboard</a>
+      <a href="{{ url_for('intersections') }}" class="btn btn-ghost">Intersections</a>
+      <a href="{{ url_for('profile') }}" class="btn btn-ghost">Profile</a>
+      <a href="{{ url_for('logout') }}" class="btn btn-secondary">Log out</a>
+    </div>
+  </nav>
+</header>
+
+<main class="intersections-page">
+  <div class="container">
+    <div class="page-header">
+      <h1 class="hero-title">Traffic Intersections</h1>
+      <p class="hero-subtitle">Manage and monitor all your intersections and their lane cameras</p>
+    </div>
+
+    <div class="add-form-card">
+      <h3>Add New Intersection</h3>
+      <form class="add-form" action="{{ url_for('intersection_add') }}" method="post">
+        <div class="input-group">
+          <input type="text" name="name" placeholder="Intersection name (e.g., Main St & 5th Ave)" required />
+        </div>
+        <div class="input-group">
+          <input type="text" name="location" placeholder="Location (e.g., Downtown District)" required />
+        </div>
+        <button type="submit" class="btn btn-primary">Add Intersection</button>
+      </form>
+    </div>
+
+    {% if intersections %}
+    <div class="intersections-grid">
+      {% for intersection in intersections %}
+      <a href="{{ url_for('intersection_detail', intersection_id=intersection.id) }}" class="intersection-card">
+        <div class="int-header">
+          <div>
+            <div class="int-name">{{ intersection.name }}</div>
+            <div class="int-location">{{ intersection.location }}</div>
+          </div>
+          <span class="int-status {{ intersection.status }}">{{ intersection.status }}</span>
+        </div>
+        
+        <div class="lanes-preview">
+          {% for lane in intersection.lanes %}
+          <div class="lane-indicator {{ 'active' if lane.camera.status else 'inactive' }}">
+            <div class="dir">{{ lane.direction[0]|upper }}</div>
+            <div class="cam-icon">{{ '📹' if lane.camera.status else '📷' }}</div>
+          </div>
+          {% endfor %}
+        </div>
+        
+        <div class="int-stats">
+          <div class="int-stat">
+            <div class="count">{{ intersection.lanes|length }}</div>
+            <div class="label">Lanes</div>
+          </div>
+          <div class="int-stat">
+            <div class="count">{{ intersection.lanes|selectattr('camera.status')|list|length }}</div>
+            <div class="label">Active</div>
+          </div>
+          <div class="int-stat">
+            <div class="count">{{ intersection.lanes|rejectattr('camera.status')|list|length }}</div>
+            <div class="label">Inactive</div>
+          </div>
+        </div>
+      </a>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state">
+      <p>No intersections configured yet. Add one above!</p>
+    </div>
+    {% endif %}
+  </div>
+</main>
+{% endblock %}
+

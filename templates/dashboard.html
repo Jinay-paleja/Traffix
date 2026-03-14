@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+{% block title %}Dashboard – Traffix{% endblock %}
+{% block extra_css %}
+<style>
+  .dash-page { padding: 64px 24px 80px; }
+  .dash-page .container { max-width: 780px; }
+  .dash-welcome {
+    margin-bottom: 40px;
+  }
+  .dash-welcome .hero-title {
+    font-size: clamp(2rem, 4vw, 2.75rem);
+    margin-bottom: 14px;
+  }
+  .dash-welcome .hero-subtitle { margin-bottom: 0; }
+  .dash-card {
+    margin-bottom: 28px;
+    padding: 36px 40px;
+  }
+  .dash-card .section-title { margin-bottom: 12px; }
+  .dash-card .section-text { margin-bottom: 24px; }
+  .dash-card .btn { margin-top: 8px; }
+  .dash-quick {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 20px;
+    margin-top: 32px;
+  }
+  .dash-quick-item {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 24px;
+    text-align: center;
+    transition: border-color 0.25s ease, transform 0.25s ease;
+  }
+  .dash-quick-item:hover {
+    border-color: var(--border-strong);
+    transform: translateY(-2px);
+  }
+  .dash-quick-item .num {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--accent);
+    margin-bottom: 6px;
+  }
+  .dash-quick-item .label {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+  }
+</style>
+{% endblock %}
+{% block body %}
+<header>
+<nav class="nav container">
+    <a href="{{ url_for('index') }}" class="nav-brand">Traff<span>ix</span></a>
+    <div class="nav-links">
+      <a href="{{ url_for('dashboard') }}" class="btn btn-ghost">Dashboard</a>
+      <a href="{{ url_for('intersections') }}" class="btn btn-ghost">Intersections</a>
+      <a href="{{ url_for('profile') }}" class="btn btn-ghost">Profile</a>
+      <a href="{{ url_for('logout') }}" class="btn btn-secondary">Log out</a>
+    </div>
+  </nav>
+</header>
+
+<main class="dash-page">
+  <div class="container">
+    <div class="dash-welcome">
+      <h1 class="hero-title">Welcome, {{ user_name }}</h1>
+      <p class="hero-subtitle">You're signed in to the Smart Traffic Signal Optimizer. Manage intersections and view real-time optimization from here.</p>
+    </div>
+
+    <div class="card dash-card">
+      <h2 class="section-title">Getting started</h2>
+      <p class="section-text">Configure intersections, connect sensors, and view real-time signal optimization. More features will appear here as you build out your ITS.</p>
+      <a href="{{ url_for('index') }}" class="btn btn-primary">Back to home</a>
+    </div>
+
+    <div class="dash-quick">
+      <div class="dash-quick-item">
+        <div class="num">{{ stats.intersections }}</div>
+        <div class="label">Intersections</div>
+      </div>
+      <div class="dash-quick-item">
+        <div class="num">{{ stats.active_signals }}</div>
+        <div class="label">Active signals</div>
+      </div>
+      <div class="dash-quick-item">
+        <div class="num">{{ stats.sensors }}</div>
+        <div class="label">Sensors connected</div>
+      </div>
+    </div>
+  </div>
+</main>
+{% endblock %}
