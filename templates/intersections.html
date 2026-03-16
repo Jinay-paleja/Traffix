@@ -115,6 +115,76 @@
     padding-top: 16px;
     border-top: 1px solid var(--border);
   }
+  .intersection-card .graphic-preview {
+    margin: 14px 0 16px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+    display: grid;
+    place-items: center;
+  }
+  .mini-intersection {
+    position: relative;
+    width: 100%;
+    max-width: 360px;
+    aspect-ratio: 16 / 9;
+    border-radius: var(--radius);
+    background: rgba(56, 189, 248, 0.06);
+    border: 1px solid rgba(148, 163, 184, 0.16);
+    overflow: hidden;
+  }
+  .mini-intersection .center {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 44px;
+    height: 44px;
+    transform: translate(-50%, -50%);
+    border-radius: 14px;
+    background: rgba(15, 23, 42, 0.65);
+    border: 1px solid rgba(148, 163, 184, 0.2);
+  }
+  .mini-road {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 42%;
+    height: 10px;
+    transform-origin: left center;
+    transform: translateY(-50%);
+    background: rgba(148, 163, 184, 0.14);
+    border-radius: 999px;
+    border: 1px solid rgba(148, 163, 184, 0.12);
+  }
+  .mini-road.r-north { transform: translateY(-50%) rotate(-90deg); }
+  .mini-road.r-south { transform: translateY(-50%) rotate(90deg); }
+  .mini-road.r-east { transform: translateY(-50%) rotate(0deg); }
+  .mini-road.r-west { transform: translateY(-50%) rotate(180deg); }
+  .mini-road.r-northeast { transform: translateY(-50%) rotate(-45deg); }
+  .mini-road.r-northwest { transform: translateY(-50%) rotate(-135deg); }
+  .mini-road.r-southeast { transform: translateY(-50%) rotate(45deg); }
+  .mini-road.r-southwest { transform: translateY(-50%) rotate(135deg); }
+  .mini-node {
+    position: absolute;
+    width: 28px;
+    height: 28px;
+    border-radius: 10px;
+    background: rgba(30, 41, 59, 0.78);
+    border: 1px solid rgba(148, 163, 184, 0.22);
+    display: grid;
+    place-items: center;
+    font-weight: 900;
+    font-size: 0.75rem;
+  }
+  .mini-node.on { color: var(--success); }
+  .mini-node.off { color: var(--error); opacity: 0.85; }
+  .mini-node.dir-north { left: 50%; top: 12%; transform: translate(-50%, -50%); }
+  .mini-node.dir-south { left: 50%; top: 88%; transform: translate(-50%, -50%); }
+  .mini-node.dir-east { left: 88%; top: 50%; transform: translate(-50%, -50%); }
+  .mini-node.dir-west { left: 12%; top: 50%; transform: translate(-50%, -50%); }
+  .mini-node.dir-northeast { left: 80%; top: 20%; transform: translate(-50%, -50%); }
+  .mini-node.dir-northwest { left: 20%; top: 20%; transform: translate(-50%, -50%); }
+  .mini-node.dir-southeast { left: 80%; top: 80%; transform: translate(-50%, -50%); }
+  .mini-node.dir-southwest { left: 20%; top: 80%; transform: translate(-50%, -50%); }
   .lane-indicator {
     flex: 1;
     text-align: center;
@@ -190,6 +260,16 @@
         <div class="input-group">
           <input type="text" name="location" placeholder="Location (e.g., Downtown District)" required />
         </div>
+        <div class="input-group">
+          <label>Roads</label>
+          <select name="num_roads" required>
+            <option value="">Select...</option>
+            <option value="3">3 Roads (T-junction)</option>
+            <option value="4" selected>4 Roads (+)</option>
+            <option value="5">5 Roads</option>
+            <option value="6">6 Roads</option>
+          </select>
+        </div>
         <button type="submit" class="btn btn-primary">Add Intersection</button>
       </form>
     </div>
@@ -204,6 +284,20 @@
             <div class="int-location">{{ intersection.location }}</div>
           </div>
           <span class="int-status {{ intersection.status }}">{{ intersection.status }}</span>
+        </div>
+
+        <div class="graphic-preview">
+          <div class="mini-intersection" aria-label="Intersection graphic preview">
+            <div class="center"></div>
+            {% for lane in intersection.lanes %}
+              {% set d = (lane.direction or '')|lower|replace(' ', '-') %}
+              <div class="mini-road r-{{ d }}"></div>
+            {% endfor %}
+            {% for lane in intersection.lanes %}
+              {% set d = (lane.direction or '')|lower|replace(' ', '-') %}
+              <div class="mini-node dir-{{ d }} {{ 'on' if lane.camera.status else 'off' }}">{{ d[0]|upper if d else 'L' }}</div>
+            {% endfor %}
+          </div>
         </div>
         
         <div class="lanes-preview">
