@@ -15,9 +15,6 @@ data/
 .env
 .env.local
 
-# Secrets (never commit)
-*firebase-adminsdk*.json
-
 # IDE
 .idea/
 .vscode/
