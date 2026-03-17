@@ -36,6 +36,15 @@
   box-sizing: border-box;
 }
 
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
 html {
   scroll-behavior: smooth;
   scroll-padding-top: 90px;
@@ -83,6 +92,16 @@ a {
 
 a:hover {
   color: var(--accent-hover);
+}
+
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 4px var(--accent-soft);
+  border-color: var(--accent);
 }
 
 .container {
@@ -175,6 +194,32 @@ a:hover {
   transition: border-color var(--transition-fast), box-shadow var(--transition-fast), background var(--transition-fast);
 }
 
+.input-group select,
+.input-group textarea {
+  width: 100%;
+  padding: 16px 18px;
+  font-family: inherit;
+  font-size: 1rem;
+  color: var(--text-primary);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast), background var(--transition-fast);
+}
+
+.input-group select {
+  appearance: none;
+  background-image:
+    linear-gradient(45deg, transparent 50%, var(--text-muted) 50%),
+    linear-gradient(135deg, var(--text-muted) 50%, transparent 50%);
+  background-position:
+    calc(100% - 22px) calc(50% - 3px),
+    calc(100% - 16px) calc(50% - 3px);
+  background-size: 6px 6px, 6px 6px;
+  background-repeat: no-repeat;
+  padding-right: 46px;
+}
+
 .input-group input::placeholder {
   color: var(--text-muted);
 }
@@ -184,6 +229,19 @@ a:hover {
 }
 
 .input-group input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 4px var(--accent-soft);
+  background: var(--bg-card);
+}
+
+.input-group select:hover,
+.input-group textarea:hover {
+  border-color: var(--border-strong);
+}
+
+.input-group select:focus,
+.input-group textarea:focus {
   outline: none;
   border-color: var(--accent);
   box-shadow: 0 0 0 4px var(--accent-soft);
@@ -317,6 +375,38 @@ a:hover {
   border: 1px solid transparent;
   box-shadow: var(--shadow);
   backdrop-filter: blur(12px);
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.flash-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.flash-close {
+  appearance: none;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  background: rgba(15, 23, 42, 0.35);
+  color: var(--text-secondary);
+  width: 30px;
+  height: 30px;
+  border-radius: 10px;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  font-size: 18px;
+  line-height: 1;
+  transition: transform var(--transition-fast), background var(--transition-fast), color var(--transition-fast), border-color var(--transition-fast);
+}
+
+.flash-close:hover {
+  color: var(--text-primary);
+  border-color: rgba(148, 163, 184, 0.28);
+  background: rgba(148, 163, 184, 0.12);
+  transform: translateY(-1px);
 }
 
 .flash.success {

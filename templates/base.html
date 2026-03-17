@@ -12,7 +12,10 @@
     {% if messages %}
       <div class="flash-messages">
         {% for category, message in messages %}
-          <div class="flash {{ category }}">{{ message }}</div>
+          <div class="flash {{ category }}" role="status">
+            <div class="flash-content">{{ message }}</div>
+            <button type="button" class="flash-close" aria-label="Dismiss notification">×</button>
+          </div>
         {% endfor %}
       </div>
     {% endif %}

@@ -207,6 +207,12 @@
     object-fit: cover;
     display: block;
   }
+  .video-tile img {
+    width: 100%;
+    height: 180px;
+    object-fit: cover;
+    display: block;
+  }
   .video-placeholder {
     height: 180px;
     display: grid;
@@ -273,6 +279,51 @@
     font-size: 0.85rem;
     color: var(--text-secondary);
     word-break: break-all;
+  }
+
+  .lane-camera-picker {
+    margin-top: 12px;
+  }
+  .lane-camera-picker label {
+    display: block;
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--text-secondary);
+    margin-bottom: 8px;
+    letter-spacing: 0.02em;
+  }
+  .lane-camera-picker select {
+    width: 100%;
+  }
+  .source-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  @media (max-width: 720px) {
+    .source-row { grid-template-columns: 1fr; }
+  }
+  .segmented {
+    display: inline-flex;
+    border: 1px solid var(--border);
+    background: var(--bg-elevated);
+    border-radius: var(--radius);
+    overflow: hidden;
+    width: 100%;
+  }
+  .segmented button {
+    flex: 1;
+    padding: 12px 12px;
+    background: transparent;
+    color: var(--text-secondary);
+    border: none;
+    cursor: pointer;
+    font-weight: 700;
+    transition: background var(--transition-fast), color var(--transition-fast);
+  }
+  .segmented button.active {
+    background: var(--accent-soft);
+    color: var(--text-primary);
   }
 </style>
 {% endblock %}
@@ -387,11 +438,37 @@
 
           <div class="video-tile">
             {% if lane.camera.status %}
-              <video data-webcam="1" autoplay playsinline muted></video>
+              <video data-webcam="1" data-lane-id="{{ lane.id }}" autoplay playsinline muted></video>
+              <img data-networkcam="1" data-lane-id="{{ lane.id }}" alt="Network camera feed" style="display:none;" />
             {% else %}
               <div class="video-placeholder">Camera is disabled</div>
             {% endif %}
           </div>
+
+          {% if lane.camera.status %}
+          <div class="lane-camera-picker input-group" style="margin-bottom: 0;">
+            <label>Camera source</label>
+            <div class="source-row">
+              <div>
+                <div class="segmented" role="tablist" aria-label="Camera source type">
+                  <button type="button" class="cam-type-btn active" data-cam-type="device" data-lane-id="{{ lane.id }}">Device</button>
+                  <button type="button" class="cam-type-btn" data-cam-type="network" data-lane-id="{{ lane.id }}">Mobile/IP URL</button>
+                </div>
+              </div>
+              <div>
+                <select id="cam-{{ lane.id }}" data-webcam-select="1" data-lane-id="{{ lane.id }}">
+                  <option value="">Auto (default camera)</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="input-group" style="margin-top: 10px; margin-bottom: 0;">
+              <label for="camurl-{{ lane.id }}">Mobile/IP camera URL (MJPEG)</label>
+              <input id="camurl-{{ lane.id }}" data-network-url="1" data-lane-id="{{ lane.id }}"
+                     placeholder="e.g. http://192.168.0.10:4747/video  (DroidCam/IPCams)" />
+            </div>
+          </div>
+          {% endif %}
 
           <div class="stream" style="margin-top: 10px;">Camera ID: {{ lane.camera.id }}</div>
 
@@ -416,19 +493,99 @@
     (function () {
       const startBtn = document.getElementById('start-webcam-btn');
       const stopBtn = document.getElementById('stop-webcam-btn');
+      const intersectionId = {{ intersection.id|tojson }};
+      const storageKeyPrefix = `traffix:webcam:${intersectionId}`;
+
+      function setLaneSourceType(laneId, type) {
+        if (!laneId) return;
+        localStorage.setItem(window.TraffixWebcam.storageKeyType(storageKeyPrefix, laneId), type);
+
+        const video = document.querySelector(`video[data-webcam='1'][data-lane-id='${laneId}']`);
+        const img = document.querySelector(`img[data-networkcam='1'][data-lane-id='${laneId}']`);
+        const select = document.querySelector(`select[data-webcam-select='1'][data-lane-id='${laneId}']`);
+        const input = document.querySelector(`input[data-network-url='1'][data-lane-id='${laneId}']`);
+
+        if (type === "network") {
+          if (video) video.style.display = "none";
+          if (img) img.style.display = "block";
+          if (select) select.disabled = true;
+          if (input) input.disabled = false;
+        } else {
+          if (video) video.style.display = "block";
+          if (img) img.style.display = "none";
+          if (select) select.disabled = false;
+          if (input) input.disabled = true;
+        }
+      }
+
+      function hydrateLaneSourceUI() {
+        document.querySelectorAll("input[data-network-url='1']").forEach((inp) => {
+          const laneId = inp.getAttribute("data-lane-id");
+          const key = window.TraffixWebcam.storageKeyUrl(storageKeyPrefix, laneId);
+          const saved = localStorage.getItem(key) || "";
+          inp.value = saved;
+        });
+
+        document.querySelectorAll(".cam-type-btn").forEach((btn) => {
+          const laneId = btn.getAttribute("data-lane-id");
+          const type = localStorage.getItem(window.TraffixWebcam.storageKeyType(storageKeyPrefix, laneId)) || "device";
+          const btnType = btn.getAttribute("data-cam-type");
+          btn.classList.toggle("active", btnType === type);
+        });
+
+        // Apply source-type effects per lane
+        const laneIds = new Set(Array.from(document.querySelectorAll("video[data-webcam='1']")).map(v => v.getAttribute("data-lane-id")));
+        laneIds.forEach((laneId) => {
+          const type = localStorage.getItem(window.TraffixWebcam.storageKeyType(storageKeyPrefix, laneId)) || "device";
+          setLaneSourceType(laneId, type);
+        });
+      }
 
       function start() {
         window.TraffixWebcam?.attachWebcamToVideos({
           videoSelector: "video[data-webcam='1']",
+          selectSelector: "select[data-webcam-select='1']",
+          networkImgSelector: "img[data-networkcam='1']",
           statusSelector: "[data-webcam-status='1']",
-          constraints: { video: true, audio: false }
+          constraints: { video: true, audio: false },
+          storageKeyPrefix
         });
       }
 
       startBtn?.addEventListener('click', start);
       stopBtn?.addEventListener('click', () => window.TraffixWebcam?.stopStream());
 
+      document.addEventListener('change', (e) => {
+        const t = e.target;
+        if (t instanceof HTMLSelectElement && t.matches("select[data-webcam-select='1']")) {
+          start();
+          return;
+        }
+        if (t instanceof HTMLInputElement && t.matches("input[data-network-url='1']")) {
+          const laneId = t.getAttribute("data-lane-id");
+          const url = t.value.trim();
+          localStorage.setItem(window.TraffixWebcam.storageKeyUrl(storageKeyPrefix, laneId), url);
+          window.TraffixWebcam.applyNetworkUrlToLane(laneId, url);
+          start();
+        }
+      });
+
+      document.addEventListener('click', (e) => {
+        const t = e.target;
+        if (!(t instanceof HTMLButtonElement)) return;
+        if (!t.matches(".cam-type-btn")) return;
+
+        const laneId = t.getAttribute("data-lane-id");
+        const type = t.getAttribute("data-cam-type");
+        document.querySelectorAll(`.cam-type-btn[data-lane-id='${laneId}']`).forEach((b) => {
+          b.classList.toggle("active", b.getAttribute("data-cam-type") === type);
+        });
+        setLaneSourceType(laneId, type);
+        start();
+      });
+
       // Auto-start to make it feel “live” (browser may still require a click).
+      hydrateLaneSourceUI();
       start();
     })();
   </script>

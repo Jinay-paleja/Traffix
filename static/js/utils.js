@@ -24,18 +24,39 @@
     });
   });
 
-  // Auto-dismiss flash messages after 5 seconds
+  // Flash messages: auto-dismiss, pause on hover, dismiss button
   document.addEventListener('DOMContentLoaded', function() {
     var flashes = document.querySelectorAll('.flash');
     flashes.forEach(function(flash) {
-      setTimeout(function() {
+      var timeoutId = null;
+      var removeId = null;
+
+      function dismiss() {
+        if (!flash || !flash.isConnected) return;
+        if (timeoutId) clearTimeout(timeoutId);
+        if (removeId) clearTimeout(removeId);
         flash.style.opacity = '0';
         flash.style.transform = 'translateX(20px)';
         flash.style.transition = 'all 0.3s ease';
-        setTimeout(function() {
+        removeId = setTimeout(function() {
           flash.remove();
         }, 300);
-      }, 5000);
+      }
+
+      function schedule() {
+        if (timeoutId) clearTimeout(timeoutId);
+        timeoutId = setTimeout(dismiss, 5500);
+      }
+
+      var closeBtn = flash.querySelector('.flash-close');
+      if (closeBtn) closeBtn.addEventListener('click', dismiss);
+
+      flash.addEventListener('mouseenter', function() {
+        if (timeoutId) clearTimeout(timeoutId);
+      });
+      flash.addEventListener('mouseleave', schedule);
+
+      schedule();
     });
   });
 
