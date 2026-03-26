@@ -1,0 +1,568 @@
+{% extends "base.html" %}
+{% block title %}{{ intersection.name }} Monitor - Traffix{% endblock %}
+{% block extra_css %}
+<style>
+  .monitor-page {
+    min-height: 100vh;
+    padding: 18px;
+    background:
+      radial-gradient(circle at top, rgba(14, 165, 233, 0.16), transparent 30%),
+      radial-gradient(circle at 20% 20%, rgba(59, 130, 246, 0.08), transparent 28%),
+      linear-gradient(180deg, #05070a 0%, #020304 100%);
+  }
+  .monitor-shell {
+    max-width: 1680px;
+    margin: 0 auto;
+    min-height: calc(100vh - 36px);
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .monitor-header-card {
+    display: grid;
+    gap: 14px;
+    padding: 18px 20px;
+    border-radius: 24px;
+    border: 1px solid rgba(148, 163, 184, 0.16);
+    background:
+      linear-gradient(180deg, rgba(15, 23, 42, 0.72), rgba(5, 9, 16, 0.88)),
+      radial-gradient(circle at top right, rgba(34, 197, 94, 0.08), transparent 24%);
+    box-shadow: 0 24px 80px rgba(0, 0, 0, 0.38);
+  }
+  .monitor-topbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 18px;
+    flex-wrap: wrap;
+  }
+  .monitor-title {
+    font-size: clamp(1.75rem, 3vw, 3rem);
+    font-weight: 800;
+    line-height: 1.05;
+    letter-spacing: -0.05em;
+    margin-bottom: 6px;
+  }
+  .monitor-subtitle {
+    color: var(--text-secondary);
+    font-size: 1rem;
+    max-width: 64ch;
+  }
+  .monitor-actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  .monitor-actions .btn {
+    min-height: 44px;
+    padding: 10px 20px;
+  }
+  .monitor-grid {
+    display: grid;
+    gap: 14px;
+    flex: 1;
+    min-height: 0;
+  }
+  .monitor-grid.grid-count-1 {
+    grid-template-columns: 1fr;
+  }
+  .monitor-grid.grid-count-2 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .monitor-grid.grid-count-3 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .monitor-grid.grid-count-3 .monitor-tile:first-child {
+    grid-column: span 2;
+  }
+  .monitor-grid.grid-count-4 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .monitor-grid.grid-count-5,
+  .monitor-grid.grid-count-6,
+  .monitor-grid.grid-count-7,
+  .monitor-grid.grid-count-8,
+  .monitor-grid.grid-count-9 {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .monitor-tile {
+    position: relative;
+    min-height: 0;
+    aspect-ratio: 16 / 9;
+    border-radius: 22px;
+    overflow: hidden;
+    border: 1px solid rgba(148, 163, 184, 0.12);
+    background:
+      linear-gradient(180deg, rgba(7, 10, 16, 0.94), rgba(2, 6, 12, 0.98)),
+      repeating-linear-gradient(
+        -45deg,
+        rgba(255,255,255,0.018) 0,
+        rgba(255,255,255,0.018) 10px,
+        transparent 10px,
+        transparent 22px
+      );
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.24);
+  }
+  .monitor-tile.is-offline {
+    opacity: 0.84;
+  }
+  .tile-header {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 2;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 16px 16px 28px;
+    background: linear-gradient(180deg, rgba(4, 6, 9, 0.9) 0%, rgba(4, 6, 9, 0.45) 72%, rgba(4, 6, 9, 0) 100%);
+  }
+  .tile-title {
+    font-size: 1.05rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+  }
+  .tile-meta {
+    color: rgba(255,255,255,0.56);
+    font-size: 0.74rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-top: 2px;
+  }
+  .tile-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 10px;
+    border-radius: 999px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .tile-status::before {
+    content: "";
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: currentColor;
+  }
+  .tile-status.on {
+    background: rgba(52, 211, 153, 0.14);
+    color: var(--success);
+  }
+  .tile-status.off {
+    background: rgba(248, 113, 113, 0.14);
+    color: var(--error);
+  }
+  .tile-feed {
+    position: relative;
+    min-height: 0;
+    height: 100%;
+    overflow: hidden;
+    display: grid;
+    place-items: center;
+    background:
+      radial-gradient(circle at center, rgba(15, 23, 42, 0.38), rgba(2, 6, 12, 0.98)),
+      #07090d;
+  }
+  .tile-feed video,
+  .tile-feed img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    background: #05070b;
+  }
+  .tile-feed img {
+    display: none;
+  }
+  .tile-idle {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    text-align: center;
+    padding: 28px;
+    color: rgba(226, 232, 240, 0.78);
+    font-size: 1rem;
+    letter-spacing: 0.01em;
+    background: linear-gradient(180deg, rgba(2, 6, 12, 0.18), rgba(2, 6, 12, 0.6));
+  }
+  .tile-idle strong {
+    display: block;
+    color: #f8fafc;
+    font-size: 1.05rem;
+    margin-bottom: 6px;
+  }
+  .monitor-tile.has-feed .tile-idle {
+    display: none;
+  }
+  .tile-offline {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    color: var(--text-muted);
+    font-size: 1rem;
+    background:
+      linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0)),
+      repeating-linear-gradient(
+        -45deg,
+        rgba(255,255,255,0.02) 0,
+        rgba(255,255,255,0.02) 10px,
+        transparent 10px,
+        transparent 20px
+      );
+  }
+  .tile-footer {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 2;
+    padding: 28px 16px 14px;
+    background: linear-gradient(180deg, rgba(4, 6, 9, 0) 0%, rgba(4, 6, 9, 0.55) 35%, rgba(4, 6, 9, 0.9) 100%);
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    align-items: flex-end;
+  }
+  .tile-footer-copy {
+    color: rgba(255,255,255,0.72);
+    font-size: 0.78rem;
+    letter-spacing: 0.02em;
+  }
+  .tile-source {
+    color: rgba(255,255,255,0.64);
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+  .monitor-statusbar [data-webcam-status='1'] {
+    display: none;
+    padding: 14px 16px;
+    border-radius: 16px;
+    border: 1px solid rgba(148, 163, 184, 0.14);
+    background: rgba(15, 23, 42, 0.72);
+    color: rgba(226, 232, 240, 0.84);
+  }
+  .monitor-statusbar [data-webcam-status='1'][data-tone='success'] {
+    border-color: rgba(34, 197, 94, 0.28);
+    background: rgba(20, 83, 45, 0.34);
+    color: #86efac;
+  }
+  .monitor-statusbar [data-webcam-status='1'][data-tone='error'] {
+    border-color: rgba(248, 113, 113, 0.28);
+    background: rgba(127, 29, 29, 0.3);
+    color: #fca5a5;
+  }
+  .monitor-grid.grid-count-1 .monitor-tile {
+    aspect-ratio: 21 / 9;
+  }
+  .monitor-grid.grid-count-2 .monitor-tile,
+  .monitor-grid.grid-count-3 .monitor-tile,
+  .monitor-grid.grid-count-4 .monitor-tile {
+    aspect-ratio: 16 / 9;
+  }
+  .monitor-grid.grid-count-5 .monitor-tile,
+  .monitor-grid.grid-count-6 .monitor-tile,
+  .monitor-grid.grid-count-7 .monitor-tile,
+  .monitor-grid.grid-count-8 .monitor-tile,
+  .monitor-grid.grid-count-9 .monitor-tile {
+    aspect-ratio: 4 / 3;
+  }
+  @media (max-width: 1100px) {
+    .monitor-grid.grid-count-5,
+    .monitor-grid.grid-count-6,
+    .monitor-grid.grid-count-7,
+    .monitor-grid.grid-count-8,
+    .monitor-grid.grid-count-9 {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+  @media (max-width: 720px) {
+    .monitor-page {
+      padding: 12px 10px 16px;
+    }
+    .monitor-header-card {
+      padding: 16px;
+    }
+    .monitor-grid,
+    .monitor-grid.grid-count-2,
+    .monitor-grid.grid-count-3,
+    .monitor-grid.grid-count-4,
+    .monitor-grid.grid-count-5,
+    .monitor-grid.grid-count-6,
+    .monitor-grid.grid-count-7,
+    .monitor-grid.grid-count-8,
+    .monitor-grid.grid-count-9 {
+      grid-template-columns: 1fr;
+    }
+    .monitor-grid.grid-count-3 .monitor-tile:first-child {
+      grid-column: auto;
+    }
+    .monitor-actions .btn {
+      min-height: 42px;
+      padding: 10px 18px;
+    }
+  }
+</style>
+{% endblock %}
+
+{% block body %}
+{% set active_lanes = intersection.lanes|selectattr('camera.status')|list %}
+{% set lanes_for_monitor = active_lanes if active_lanes else intersection.lanes %}
+{% set lane_count = lanes_for_monitor|length %}
+{% set hidden_count = (intersection.lanes|length) - lane_count %}
+{% if lane_count <= 1 %}
+  {% set grid_class = "grid-count-1" %}
+{% elif lane_count == 2 %}
+  {% set grid_class = "grid-count-2" %}
+{% elif lane_count == 3 %}
+  {% set grid_class = "grid-count-3" %}
+{% elif lane_count == 4 %}
+  {% set grid_class = "grid-count-4" %}
+{% elif lane_count <= 6 %}
+  {% set grid_class = "grid-count-6" %}
+{% else %}
+  {% set grid_class = "grid-count-9" %}
+{% endif %}
+
+<main class="monitor-page">
+  <div class="monitor-shell" data-intersection-id="{{ intersection.id }}" data-active-count="{{ active_lanes|length }}" data-total-count="{{ intersection.lanes|length }}">
+    <section class="monitor-header-card">
+      <section class="monitor-topbar">
+        <div>
+          <div class="page-eyebrow">CCTV monitor mode</div>
+          <h1 class="monitor-title">{{ intersection.name }}</h1>
+          <p class="monitor-subtitle">
+            {{ intersection.location }} · {{ lane_count }} live camera tile{{ '' if lane_count == 1 else 's' }} fitted automatically for this intersection{% if hidden_count > 0 %} · {{ hidden_count }} disabled hidden from the wall{% endif %}.
+          </p>
+        </div>
+        <div class="monitor-actions">
+          <button type="button" class="btn btn-secondary" id="enter-fullscreen-btn">Fullscreen</button>
+          <button type="button" class="btn btn-primary" id="start-all-cameras-btn">Enable camera</button>
+          <button type="button" class="btn btn-ghost" id="stop-all-cameras-btn">Stop camera</button>
+          <a href="{{ url_for('intersection_detail', intersection_id=intersection.id) }}" class="btn btn-ghost">Back to detail</a>
+        </div>
+      </section>
+    </section>
+
+    <section class="monitor-grid {{ grid_class }}">
+      {% for lane in lanes_for_monitor %}
+      <article class="monitor-tile {{ 'is-offline' if not lane.camera.status else '' }}" data-monitor-tile="{{ lane.id }}">
+        <div class="tile-header">
+          <div>
+            <div class="tile-title">{{ lane.name }}</div>
+            <div class="tile-meta">{{ lane.direction }}</div>
+          </div>
+          <span class="tile-status {{ 'on' if lane.camera.status else 'off' }}">
+            {{ 'Live' if lane.camera.status else 'Offline' }}
+          </span>
+        </div>
+
+        <div class="tile-feed">
+          {% if lane.camera.status %}
+            <video data-webcam="1" data-lane-id="{{ lane.id }}" autoplay playsinline muted></video>
+            <img data-networkcam="1" data-lane-id="{{ lane.id }}" alt="{{ lane.name }} network feed" />
+            <div class="tile-idle" data-idle-state="{{ lane.id }}">
+              <div>
+                <strong>Feed ready</strong>
+                {% if active_lanes|length > 0 %}
+                Loading the live view for this camera.
+                {% else %}
+                Click Enable camera to load this live view.
+                {% endif %}
+              </div>
+            </div>
+          {% else %}
+            <div class="tile-offline">Camera disabled</div>
+          {% endif %}
+        </div>
+
+        <div class="tile-footer">
+          <div class="tile-footer-copy">Camera ID: {{ lane.camera.id }}</div>
+          <div class="tile-source" data-lane-source="{{ lane.id }}">Device</div>
+        </div>
+      </article>
+      {% endfor %}
+    </section>
+
+    <div class="monitor-statusbar">
+      <div data-webcam-status="1">Starting monitor feeds...</div>
+    </div>
+  </div>
+</main>
+{% endblock %}
+
+{% block extra_js %}
+  <script src="{{ url_for('static', filename='js/webcam.js') }}"></script>
+  <script>
+    (function () {
+      const fullscreenBtn = document.getElementById('enter-fullscreen-btn');
+      const startAllBtn = document.getElementById('start-all-cameras-btn');
+      const stopAllBtn = document.getElementById('stop-all-cameras-btn');
+      const shell = document.querySelector('.monitor-shell');
+      const root = document.documentElement;
+      const intersectionId = shell?.getAttribute('data-intersection-id') || {{ intersection.id|tojson }};
+      const activeCount = Number(shell?.getAttribute('data-active-count') || "0");
+      const storageKeyPrefix = `traffix:webcam:${intersectionId}`;
+
+      function setLaneSourceType(laneId, type) {
+        if (!laneId) return;
+        localStorage.setItem(window.TraffixWebcam.storageKeyType(storageKeyPrefix, laneId), type);
+
+        const video = document.querySelector(`video[data-webcam='1'][data-lane-id='${laneId}']`);
+        const img = document.querySelector(`img[data-networkcam='1'][data-lane-id='${laneId}']`);
+
+        if (type === "network") {
+          if (video) video.style.display = "none";
+          if (img) img.style.display = "block";
+        } else {
+          if (video) video.style.display = "block";
+          if (img) img.style.display = "none";
+        }
+      }
+
+      function setTileFeedState(laneId, hasFeed) {
+        const tile = document.querySelector(`[data-monitor-tile='${laneId}']`);
+        tile?.classList.toggle("has-feed", hasFeed);
+      }
+
+      function hydrateLaneSourceUI() {
+        const laneIds = new Set(Array.from(document.querySelectorAll("video[data-webcam='1']")).map((video) => video.getAttribute("data-lane-id")));
+        laneIds.forEach((laneId) => {
+          const type = localStorage.getItem(window.TraffixWebcam.storageKeyType(storageKeyPrefix, laneId)) || "device";
+          const label = document.querySelector(`[data-lane-source='${laneId}']`);
+          if (label) {
+            label.textContent = type === "network" ? "Mobile/IP" : "Device";
+          }
+          setLaneSourceType(laneId, type);
+          setTileFeedState(laneId, false);
+          if (type === "network") {
+            const url = localStorage.getItem(window.TraffixWebcam.storageKeyUrl(storageKeyPrefix, laneId)) || "";
+            if (url) {
+              window.TraffixWebcam.applyNetworkUrlToLane(laneId, url);
+            }
+          }
+        });
+      }
+
+      function start() {
+        return window.TraffixWebcam?.attachWebcamToVideos({
+          videoSelector: "video[data-webcam='1']",
+          networkImgSelector: "img[data-networkcam='1']",
+          statusSelector: "[data-webcam-status='1']",
+          constraints: { video: true, audio: false },
+          storageKeyPrefix
+        });
+      }
+
+      async function updateIntersectionCameras(enabled) {
+        const response = await fetch(`/camera/set_all/${intersectionId}`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "X-Requested-With": "XMLHttpRequest",
+            "Accept": "application/json"
+          },
+          body: JSON.stringify({ enabled })
+        });
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok || !payload.ok) {
+          throw new Error(payload.message || "Could not update cameras.");
+        }
+        return payload;
+      }
+
+      function stopPreview() {
+        window.TraffixWebcam?.stopStream();
+        document.querySelectorAll("video[data-webcam='1']").forEach((video) => {
+          video.srcObject = null;
+          video.load?.();
+          setTileFeedState(video.getAttribute("data-lane-id"), false);
+        });
+        document.querySelectorAll("img[data-networkcam='1']").forEach((img) => {
+          img.removeAttribute("src");
+          setTileFeedState(img.getAttribute("data-lane-id"), false);
+        });
+        const status = document.querySelector("[data-webcam-status='1']");
+        if (status) {
+          status.textContent = "All camera feeds stopped.";
+          status.dataset.tone = "info";
+          status.style.display = "block";
+        }
+      }
+
+      fullscreenBtn?.addEventListener('click', async () => {
+        if (!document.fullscreenElement) {
+          await root.requestFullscreen?.();
+          fullscreenBtn.textContent = 'Exit fullscreen';
+        } else {
+          await document.exitFullscreen?.();
+          fullscreenBtn.textContent = 'Fullscreen';
+        }
+      });
+
+      document.addEventListener('fullscreenchange', () => {
+        fullscreenBtn.textContent = document.fullscreenElement ? 'Exit fullscreen' : 'Fullscreen';
+      });
+
+      startAllBtn?.addEventListener('click', async () => {
+        startAllBtn.disabled = true;
+        try {
+          await updateIntersectionCameras(true);
+          window.location.reload();
+        } finally {
+          startAllBtn.disabled = false;
+        }
+      });
+
+      stopAllBtn?.addEventListener('click', async () => {
+        stopAllBtn.disabled = true;
+        try {
+          await updateIntersectionCameras(false);
+          stopPreview();
+          window.location.reload();
+        } catch (error) {
+          const status = document.querySelector("[data-webcam-status='1']");
+          if (status) {
+            status.textContent = error.message || "Could not stop cameras.";
+            status.dataset.tone = "error";
+            status.style.display = "block";
+          }
+        } finally {
+          stopAllBtn.disabled = false;
+        }
+      });
+
+      hydrateLaneSourceUI();
+
+      document.querySelectorAll("video[data-webcam='1']").forEach((video) => {
+        video.addEventListener("playing", () => setTileFeedState(video.getAttribute("data-lane-id"), true));
+        video.addEventListener("pause", () => setTileFeedState(video.getAttribute("data-lane-id"), false));
+        video.addEventListener("emptied", () => setTileFeedState(video.getAttribute("data-lane-id"), false));
+      });
+
+      document.querySelectorAll("img[data-networkcam='1']").forEach((img) => {
+        img.addEventListener("load", () => setTileFeedState(img.getAttribute("data-lane-id"), true));
+        img.addEventListener("error", () => setTileFeedState(img.getAttribute("data-lane-id"), false));
+      });
+
+      if (activeCount > 0) {
+        start().catch((error) => {
+          const status = document.querySelector("[data-webcam-status='1']");
+          if (status) {
+            status.textContent = error.message || "Could not start cameras automatically.";
+            status.dataset.tone = "error";
+            status.style.display = "block";
+          }
+        });
+      }
+    })();
+  </script>
+{% endblock %}

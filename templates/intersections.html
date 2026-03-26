@@ -2,41 +2,23 @@
 {% block title %}Intersections – Traffix{% endblock %}
 {% block extra_css %}
 <style>
-  .intersections-page {
-    padding: 80px 24px 80px;
-    min-height: 100vh;
-  }
-  .intersections-page .container { max-width: 1000px; }
-  .page-header {
-    margin-bottom: 40px;
-  }
-  .page-header .hero-title {
-    font-size: clamp(1.75rem, 4vw, 2.25rem);
-    margin-bottom: 8px;
-  }
-  .page-header .hero-subtitle {
-    color: var(--text-secondary);
-    margin-bottom: 0;
-  }
   .add-form-card {
-    background: var(--bg-card);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-lg);
-    padding: 24px;
-    margin-bottom: 32px;
+    margin-bottom: var(--space-8);
   }
   .add-form-card h3 {
     font-size: 1.125rem;
-    margin-bottom: 16px;
+    margin-bottom: var(--space-4);
   }
   .add-form {
-    display: flex;
-    gap: 12px;
-    flex-wrap: wrap;
+    display: grid;
+    grid-template-columns: 2fr 2fr 1fr auto;
+    gap: var(--space-4);
+    align-items: end;
+  }
+  @media (max-width: 700px) {
+    .add-form { grid-template-columns: 1fr; }
   }
   .add-form .input-group {
-    flex: 1;
-    min-width: 200px;
     margin-bottom: 0;
   }
   .add-form .input-group input {
@@ -45,22 +27,27 @@
   .intersections-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-    gap: 24px;
+    gap: var(--space-6);
   }
   .intersection-card {
-    background: var(--bg-card);
-    border: 1px solid var(--border);
+    background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.015));
+    border: 1px solid rgba(255,255,255,0.08);
     border-radius: var(--radius-lg);
     padding: 24px;
     transition: all var(--transition);
     cursor: pointer;
     text-decoration: none;
     display: block;
+    box-shadow: var(--shadow-soft);
   }
   .intersection-card:hover {
-    border-color: var(--border-strong);
+    border-color: rgba(255,255,255,0.16);
     transform: translateY(-4px);
-    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3);
+    box-shadow: var(--shadow), var(--shadow-glow);
+  }
+  .intersection-card:focus-visible {
+    border-color: rgba(116, 34, 230, 0.34);
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,0.03), 0 0 0 1px rgba(116, 34, 230, 0.08), var(--shadow), var(--shadow-glow);
   }
   .intersection-card .int-header {
     display: flex;
@@ -118,7 +105,7 @@
   .intersection-card .graphic-preview {
     margin: 14px 0 16px;
     padding-top: 16px;
-    border-top: 1px solid var(--border);
+    border-top: 1px solid rgba(255,255,255,0.08);
     display: grid;
     place-items: center;
   }
@@ -207,7 +194,7 @@
     display: flex;
     gap: 20px;
     padding-top: 16px;
-    border-top: 1px solid var(--border);
+    border-top: 1px solid rgba(255,255,255,0.08);
   }
   .int-stat {
     text-align: center;
@@ -219,40 +206,64 @@
     color: var(--accent);
   }
   .int-stat .label {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
     font-size: 0.75rem;
     color: var(--text-muted);
     text-transform: uppercase;
     letter-spacing: 0.05em;
   }
-  .empty-state {
-    text-align: center;
-    padding: 60px 20px;
+  .intersections-toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: var(--space-4);
+    margin-bottom: var(--space-6);
+    flex-wrap: wrap;
+  }
+  .intersections-toolbar-copy {
     color: var(--text-secondary);
+    max-width: 56ch;
   }
 </style>
 {% endblock %}
 {% block body %}
-<header>
-  <nav class="nav container">
-    <a href="{{ url_for('index') }}" class="nav-brand">Traff<span>ix</span></a>
-    <div class="nav-links">
-      <a href="{{ url_for('dashboard') }}" class="btn btn-ghost">Dashboard</a>
-      <a href="{{ url_for('intersections') }}" class="btn btn-ghost">Intersections</a>
-      <a href="{{ url_for('profile') }}" class="btn btn-ghost">Profile</a>
-      <a href="{{ url_for('logout') }}" class="btn btn-secondary">Log out</a>
-    </div>
-  </nav>
+<header class="site-header">
+  <div class="nav-shell">
+    <nav class="nav container">
+      <a href="{{ url_for('index') }}" class="nav-brand">Traff<span>ix</span></a>
+      <div class="nav-links">
+        <a href="{{ url_for('dashboard') }}" class="btn btn-ghost"><span class="icon-inline">⌘</span>Dashboard</a>
+        <a href="{{ url_for('intersections') }}" class="btn btn-ghost active"><span class="icon-inline">◫</span>Intersections</a>
+        <a href="{{ url_for('profile') }}" class="btn btn-ghost"><span class="icon-inline">○</span>Profile</a>
+        <a href="{{ url_for('logout') }}" class="btn btn-secondary">Log out</a>
+      </div>
+    </nav>
+  </div>
 </header>
 
-<main class="intersections-page">
+<main class="page-shell">
   <div class="container">
-    <div class="page-header">
-      <h1 class="hero-title">Traffic Intersections</h1>
-      <p class="hero-subtitle">Manage and monitor all your intersections and their lane cameras</p>
-    </div>
+    <section class="page-hero">
+      <div class="page-hero-copy">
+        <div class="page-eyebrow">Network control</div>
+        <h1 class="page-title">Traffic intersections</h1>
+        <p class="page-subtitle">Manage every intersection from one place, add new sites, and jump into lane-level camera controls without crowding the page.</p>
+      </div>
+      <div class="page-actions">
+        <a href="#add-intersection" class="btn btn-primary">Add intersection</a>
+        <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">Back to dashboard</a>
+      </div>
+    </section>
 
-    <div class="add-form-card">
-      <h3>Add New Intersection</h3>
+    <section class="surface-panel section-block add-form-card" id="add-intersection">
+      <div class="section-heading">
+        <div>
+          <div class="section-kicker">Primary action</div>
+          <h2 class="section-title">Add a new intersection</h2>
+        </div>
+      </div>
       <form class="add-form" action="{{ url_for('intersection_add') }}" method="post">
         <div class="input-group">
           <input type="text" name="name" placeholder="Intersection name (e.g., Main St & 5th Ave)" required />
@@ -272,9 +283,13 @@
         </div>
         <button type="submit" class="btn btn-primary">Add Intersection</button>
       </form>
-    </div>
+    </section>
 
     {% if intersections %}
+    <section class="section-stack">
+    <div class="intersections-toolbar">
+      <div class="intersections-toolbar-copy">Each card summarizes status, lane coverage, and camera activity so you can scan the network quickly before opening details.</div>
+    </div>
     <div class="intersections-grid">
       {% for intersection in intersections %}
       <a href="{{ url_for('intersection_detail', intersection_id=intersection.id) }}" class="intersection-card">
@@ -312,26 +327,26 @@
         <div class="int-stats">
           <div class="int-stat">
             <div class="count">{{ intersection.lanes|length }}</div>
-            <div class="label">Lanes</div>
+            <div class="label"><span class="icon-inline">≡</span>Lanes</div>
           </div>
           <div class="int-stat">
             <div class="count">{{ intersection.lanes|selectattr('camera.status')|list|length }}</div>
-            <div class="label">Active</div>
+            <div class="label"><span class="icon-inline">↗</span>Active</div>
           </div>
           <div class="int-stat">
             <div class="count">{{ intersection.lanes|rejectattr('camera.status')|list|length }}</div>
-            <div class="label">Inactive</div>
+            <div class="label"><span class="icon-inline">−</span>Inactive</div>
           </div>
         </div>
       </a>
       {% endfor %}
     </div>
+    </section>
     {% else %}
-    <div class="empty-state">
-      <p>No intersections configured yet. Add one above!</p>
-    </div>
+    <section class="surface-panel section-block empty-state">
+      <p class="empty-state-text">No intersections configured yet. Add your first one above to start building the network.</p>
+    </section>
     {% endif %}
   </div>
 </main>
 {% endblock %}
-

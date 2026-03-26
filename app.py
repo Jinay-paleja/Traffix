@@ -195,6 +195,24 @@ def toggle_camera(intersection_id, lane_id):
     return False
 
 
+def set_all_cameras(intersection_id, enabled):
+    intersections = load_intersections()
+    for intersection in intersections:
+        if intersection["id"] == intersection_id:
+            changed = False
+            for lane in intersection.get("lanes", []):
+                camera = lane.get("camera") or {}
+                if "stream_url" not in camera:
+                    camera["stream_url"] = f"https://example.com/stream/{camera.get('id', lane['id'])}"
+                if camera.get("status") != enabled:
+                    camera["status"] = enabled
+                    changed = True
+            if changed:
+                save_intersections(intersections)
+            return True
+    return False
+
+
 def add_intersection(name, location, num_roads=4):
     intersections = load_intersections()
     new_id = f"int-{len(intersections) + 1:03d}"
@@ -366,29 +384,120 @@ def register():
 @app.route("/dashboard")
 @login_required
 def dashboard():
-    
-    # Calculate real-time stats from data
     intersections = load_intersections()
     total_intersections = len(intersections)
-    
-    # Count active signals (lanes with cameras enabled)
-    active_signals = 0
-    sensors_connected = 0
-    
+    total_cameras = 0
+    active_cameras = 0
+    maintenance_intersections = 0
+    healthy_intersections = 0
+    alerts = []
+    priority_intersections = []
+
     for intersection in intersections:
-        if intersection.get("status") == "active":
-            for lane in intersection.get("lanes", []):
-                if lane.get("camera", {}).get("status"):
-                    active_signals += 1
-                    sensors_connected += 1
-    
+        lanes = intersection.get("lanes", [])
+        camera_total = len(lanes)
+        camera_active = sum(1 for lane in lanes if lane.get("camera", {}).get("status"))
+        camera_offline = camera_total - camera_active
+        status = intersection.get("status", "active")
+
+        total_cameras += camera_total
+        active_cameras += camera_active
+
+        if status == "maintenance":
+            maintenance_intersections += 1
+
+        if status == "active" and camera_total > 0 and camera_active == camera_total:
+            healthy_intersections += 1
+
+        if status == "maintenance":
+            alerts.append({
+                "tone": "error",
+                "title": f"{intersection['name']} is under maintenance",
+                "copy": f"{intersection['location']} needs review before normal monitoring resumes.",
+                "intersection_id": intersection["id"],
+            })
+        elif camera_total == 0:
+            alerts.append({
+                "tone": "warning",
+                "title": f"{intersection['name']} has no cameras configured",
+                "copy": "Add lane cameras before using live monitoring.",
+                "intersection_id": intersection["id"],
+            })
+        elif camera_active == 0:
+            alerts.append({
+                "tone": "error",
+                "title": f"All cameras are off at {intersection['name']}",
+                "copy": f"{camera_total} lane camera(s) are currently disabled.",
+                "intersection_id": intersection["id"],
+            })
+        elif camera_offline > 0:
+            alerts.append({
+                "tone": "warning",
+                "title": f"{intersection['name']} has reduced coverage",
+                "copy": f"{camera_offline} of {camera_total} camera(s) are disabled.",
+                "intersection_id": intersection["id"],
+            })
+
+        priority_intersections.append({
+            "id": intersection["id"],
+            "name": intersection["name"],
+            "location": intersection.get("location", "Unknown location"),
+            "status": status,
+            "camera_total": camera_total,
+            "camera_active": camera_active,
+            "camera_offline": camera_offline,
+            "priority_score": (
+                300 if status == "maintenance" else 0
+            ) + (
+                200 if camera_total > 0 and camera_active == 0 else 0
+            ) + (camera_offline * 10),
+        })
+
+    priority_intersections.sort(key=lambda item: (-item["priority_score"], item["name"]))
+    alerts = alerts[:4]
+    priority_intersections = priority_intersections[:4]
+
     stats = {
         "intersections": total_intersections,
-        "active_signals": active_signals,
-        "sensors": sensors_connected
+        "active_signals": active_cameras,
+        "sensors": total_cameras,
+        "offline_cameras": total_cameras - active_cameras,
+        "maintenance": maintenance_intersections,
+        "healthy_intersections": healthy_intersections,
     }
-    
-    return render_template("dashboard.html", user_name=session.get("user_name", "User"), stats=stats)
+
+    quick_actions = [
+        {
+            "title": "Manage intersections",
+            "copy": "Open the full directory to edit lanes, cameras, and status.",
+            "href": url_for("intersections"),
+            "label": "Open intersections",
+            "tone": "primary",
+        },
+        {
+            "title": "Review profile",
+            "copy": "Update account details and keep security settings in one place.",
+            "href": url_for("profile"),
+            "label": "Open profile",
+            "tone": "secondary",
+        },
+        {
+            "title": "Return home",
+            "copy": "Jump back to the landing page and top-level navigation.",
+            "href": url_for("index"),
+            "label": "View homepage",
+            "tone": "ghost",
+        },
+    ]
+
+    return render_template(
+        "dashboard.html",
+        user_name=session.get("user_name", "User"),
+        stats=stats,
+        alerts=alerts,
+        priority_intersections=priority_intersections,
+        quick_actions=quick_actions,
+    )
 
 
 @app.route("/logout")
@@ -458,17 +567,89 @@ def intersection_detail(intersection_id):
     return render_template("intersection_detail.html", intersection=intersection)
 
 
+@app.route("/intersection/<intersection_id>/monitor")
+@login_required
+def intersection_monitor(intersection_id):
+    intersection = get_intersection(intersection_id)
+    if not intersection:
+        flash("Intersection not found.", "error")
+        return redirect(url_for("intersections"))
+    return render_template("intersection_monitor.html", intersection=intersection)
+
+
 @app.route("/camera/toggle/<intersection_id>/<lane_id>", methods=["POST"])
 @login_required
 def camera_toggle(intersection_id, lane_id):
-    
     success = toggle_camera(intersection_id, lane_id)
+
+    lane = None
+    intersection = get_intersection(intersection_id)
+    if intersection:
+        for item in intersection.get("lanes", []):
+            if item.get("id") == lane_id:
+                lane = item
+                break
+
+    wants_json = (
+        request.headers.get("X-Requested-With") == "XMLHttpRequest"
+        or request.accept_mimetypes["application/json"] >= request.accept_mimetypes["text/html"]
+    )
+
+    if wants_json:
+        if success and lane:
+            return {
+                "ok": True,
+                "lane_id": lane_id,
+                "camera_status": bool(lane.get("camera", {}).get("status")),
+                "message": "Camera status updated successfully!",
+            }
+        return {"ok": False, "lane_id": lane_id, "message": "Camera not found."}, 404
+
     if success:
         flash("Camera status updated successfully!", "success")
     else:
         flash("Camera not found.", "error")
-    
+
     return redirect(url_for("intersection_detail", intersection_id=intersection_id))
+
+
+@app.route("/camera/set_all/<intersection_id>", methods=["POST"])
+@login_required
+def camera_set_all(intersection_id):
+    enabled = request.get_json(silent=True, force=False) or {}
+    target_state = bool(enabled.get("enabled"))
+
+    success = set_all_cameras(intersection_id, target_state)
+    intersection = get_intersection(intersection_id) if success else None
+    active_count = 0
+    total_count = 0
+    if intersection:
+        lanes = intersection.get("lanes", [])
+        total_count = len(lanes)
+        active_count = sum(1 for lane in lanes if lane.get("camera", {}).get("status"))
+
+    wants_json = (
+        request.headers.get("X-Requested-With") == "XMLHttpRequest"
+        or request.accept_mimetypes["application/json"] >= request.accept_mimetypes["text/html"]
+    )
+
+    if wants_json:
+        if success:
+            return {
+                "ok": True,
+                "enabled": target_state,
+                "active_count": active_count,
+                "total_count": total_count,
+                "message": "All cameras updated successfully!",
+            }
+        return {"ok": False, "message": "Intersection not found."}, 404
+
+    if success:
+        flash("All cameras updated successfully!", "success")
+    else:
+        flash("Intersection not found.", "error")
+
+    return redirect(url_for("intersection_monitor", intersection_id=intersection_id))
 
 
 @app.route("/intersection/add", methods=["POST"])

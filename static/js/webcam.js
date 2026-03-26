@@ -6,6 +6,10 @@
   /** @type {Map<string, string>} */
   const networkUrlByLane = new Map();
 
+  function hasActiveTracks(stream) {
+    return !!stream && stream.getTracks().some((track) => track.readyState === "live");
+  }
+
   function setStatus(el, msg, tone = "info") {
     if (!el) return;
     el.textContent = msg;
@@ -14,6 +18,9 @@
   }
 
   async function getDefaultStream(constraints) {
+    if (defaultStream && !hasActiveTracks(defaultStream)) {
+      defaultStream = null;
+    }
     if (defaultStream) return defaultStream;
     const stream = await navigator.mediaDevices.getUserMedia(constraints);
     defaultStream = stream;
@@ -38,7 +45,11 @@
 
   async function getStreamForDeviceId(deviceId, baseConstraints) {
     if (!deviceId) return getDefaultStream(baseConstraints);
-    if (streamsByDeviceId.has(deviceId)) return streamsByDeviceId.get(deviceId);
+    if (streamsByDeviceId.has(deviceId)) {
+      const cached = streamsByDeviceId.get(deviceId);
+      if (hasActiveTracks(cached)) return cached;
+      streamsByDeviceId.delete(deviceId);
+    }
 
     const constraints = {
       ...baseConstraints,
@@ -177,6 +188,16 @@
         deviceIdByLane.set(laneId, val);
       });
 
+      const deviceVideos = videos.filter((video) => {
+        const laneId = video.getAttribute("data-lane-id");
+        const sourceType = localStorage.getItem(storageKeyType(storageKeyPrefix, laneId)) || "device";
+        return sourceType !== "network";
+      });
+
+      if (deviceVideos.length) {
+        await getDefaultStream(constraints);
+      }
+
       // Apply network URLs (if any)
       networkImgs.forEach((img) => {
         const laneId = img.getAttribute("data-lane-id");
@@ -191,6 +212,7 @@
         }
       });
 
+      let attachedCount = 0;
       for (const v of videos) {
         const laneId = v.getAttribute("data-lane-id");
         if (!laneId) continue;
@@ -207,7 +229,17 @@
         v.srcObject = stream;
         v.muted = true;
         v.playsInline = true;
-        v.play?.().catch(() => {});
+        try {
+          await v.play?.();
+          attachedCount += 1;
+        } catch (playErr) {
+          throw new Error(playErr?.message || "Video playback could not start.");
+        }
+      }
+
+      if (!attachedCount && !networkImgs.some((img) => img.getAttribute("src"))) {
+        setStatus(statusEl, "No active camera feeds available for this view.", "error");
+        return;
       }
 
       setStatus(statusEl, "Cameras connected.", "success");
