@@ -17,6 +17,7 @@ import os
 import json
 import math
 import random
+import uuid
 from pathlib import Path
 from datetime import datetime, timedelta
 
@@ -64,7 +65,10 @@ app.secret_key = os.environ.get("SECRET_KEY", "traffix-dev-secret-change-in-prod
 USERS_FILE = BASE_DIR / "data" / "users.json"
 INTERSECTIONS_FILE = BASE_DIR / "data" / "intersections.json"
 TRAFFIC_HISTORY_FILE = BASE_DIR / "data" / "traffic_history.json"
+INTERSECTION_MEDIA_FILE = BASE_DIR / "data" / "intersection_media.json"
+LANE_VIDEO_UPLOAD_DIR = BASE_DIR / "static" / "uploads" / "lane_videos"
 ALLOWED_IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp"}
+ALLOWED_VIDEO_EXTENSIONS = {".mp4", ".mov", ".avi", ".mkv", ".webm"}
 
 
 def _normalize_intersections(intersections):
@@ -184,7 +188,16 @@ def load_traffic_history():
                 return []
             payload = json.loads(data)
             history = payload.get("history", [])
-            return history if isinstance(history, list) else []
+            if not isinstance(history, list):
+                return []
+            changed = False
+            for item in history:
+                if isinstance(item, dict) and not item.get("id"):
+                    item["id"] = uuid.uuid4().hex
+                    changed = True
+            if changed:
+                save_traffic_history(history)
+            return history
     except (json.JSONDecodeError, OSError):
         return []
 
@@ -193,6 +206,27 @@ def save_traffic_history(history):
     TRAFFIC_HISTORY_FILE.parent.mkdir(parents=True, exist_ok=True)
     with open(TRAFFIC_HISTORY_FILE, "w", encoding="utf-8") as f:
         json.dump({"history": history[-500:]}, f, indent=2)
+
+
+def load_intersection_media():
+    if not INTERSECTION_MEDIA_FILE.exists():
+        return {}
+    try:
+        with open(INTERSECTION_MEDIA_FILE, "r", encoding="utf-8") as f:
+            data = f.read().strip()
+            if not data:
+                return {}
+            payload = json.loads(data)
+            media = payload.get("media", {})
+            return media if isinstance(media, dict) else {}
+    except (json.JSONDecodeError, OSError):
+        return {}
+
+
+def save_intersection_media(media):
+    INTERSECTION_MEDIA_FILE.parent.mkdir(parents=True, exist_ok=True)
+    with open(INTERSECTION_MEDIA_FILE, "w", encoding="utf-8") as f:
+        json.dump({"media": media}, f, indent=2)
 
 
 def _peak_multiplier(hour):
@@ -285,17 +319,208 @@ def _normalize_analysis_timestamp(raw_value):
         return datetime.now().replace(microsecond=0).isoformat()
 
 
+def _normalize_event_duration(raw_value):
+    try:
+        duration = int(raw_value)
+    except (TypeError, ValueError):
+        duration = 15
+    return max(1, min(duration, 240))
+
+
+def _allowed_video_file(filename):
+    return Path(filename or "").suffix.lower() in ALLOWED_VIDEO_EXTENSIONS
+
+
+def _save_lane_video(intersection_id, lane_id, file_storage):
+    filename = secure_filename(file_storage.filename or "")
+    if not filename or not _allowed_video_file(filename):
+        return None, "Please upload a supported video file (MP4, MOV, AVI, MKV, or WEBM)."
+
+    suffix = Path(filename).suffix.lower()
+    saved_name = f"{intersection_id}-{lane_id}-{datetime.now().strftime('%Y%m%d%H%M%S')}{suffix}"
+    target_dir = LANE_VIDEO_UPLOAD_DIR / intersection_id
+    target_dir.mkdir(parents=True, exist_ok=True)
+    target_path = target_dir / saved_name
+    file_storage.save(target_path)
+    relative_url = f"uploads/lane_videos/{intersection_id}/{saved_name}"
+    return {
+        "path": str(target_path),
+        "static_url": url_for("static", filename=relative_url),
+        "filename": saved_name,
+    }, None
+
+
+def _build_lane_media_map(intersection):
+    media_payload = load_intersection_media().get(intersection.get("id"), {})
+    lane_media = {}
+    for lane in intersection.get("lanes", []):
+        lane_media[lane.get("id")] = media_payload.get(lane.get("id"), {})
+    return lane_media
+
+
+def _save_lane_media(intersection, lane_payloads):
+    media = load_intersection_media()
+    intersection_id = intersection.get("id")
+    existing = media.get(intersection_id, {})
+    existing.update(lane_payloads)
+    media[intersection_id] = existing
+    save_intersection_media(media)
+    return media[intersection_id]
+
+
+def _delete_lane_video(intersection, lane_id):
+    media = load_intersection_media()
+    intersection_id = intersection.get("id")
+    lane_media = media.get(intersection_id, {})
+    existing = lane_media.get(lane_id)
+    if not existing:
+        return False
+
+    video_url = existing.get("video_url", "")
+    static_prefix = "/static/"
+    if isinstance(video_url, str) and static_prefix in video_url:
+        relative = video_url.split(static_prefix, 1)[1].replace("/", os.sep)
+        target_path = BASE_DIR / "static" / relative
+        if target_path.exists():
+            try:
+                target_path.unlink()
+            except OSError:
+                pass
+
+    lane_media.pop(lane_id, None)
+    media[intersection_id] = lane_media
+    save_intersection_media(media)
+    return True
+
+
+def _delete_photo_analysis_history(intersection_id):
+    history = load_traffic_history()
+    filtered = [
+        item for item in history
+        if not (
+            item.get("intersection_id") == intersection_id
+            and item.get("analysis_mode", "photo") == "photo"
+        )
+    ]
+    if len(filtered) == len(history):
+        return False
+    save_traffic_history(filtered)
+    return True
+
+
+def _update_analysis_record(intersection_id, analysis_id, analysis_timestamp=None, event_duration_minutes=None):
+    history = load_traffic_history()
+    updated = None
+    for item in history:
+        if item.get("intersection_id") == intersection_id and item.get("id") == analysis_id:
+            if analysis_timestamp:
+                item["timestamp"] = analysis_timestamp
+            if event_duration_minutes is not None:
+                item["event_duration_minutes"] = event_duration_minutes
+            updated = item
+            break
+    if not updated:
+        return None
+    save_traffic_history(history)
+    return updated
+
+
+def _delete_analysis_record(intersection_id, analysis_id):
+    history = load_traffic_history()
+    filtered = [
+        item for item in history
+        if not (item.get("intersection_id") == intersection_id and item.get("id") == analysis_id)
+    ]
+    if len(filtered) == len(history):
+        return False
+    save_traffic_history(filtered)
+    return True
+
+
 def _append_traffic_history(intersection, payload):
     history = load_traffic_history()
     history.append({
+        "id": uuid.uuid4().hex,
         "intersection_id": intersection.get("id"),
         "timestamp": payload.get("analysis_timestamp") or payload.get("decision", {}).get("timestamp") or datetime.now().isoformat(),
         "source": "live",
+        "analysis_mode": payload.get("analysis_mode", "photo"),
+        "event_duration_minutes": payload.get("event_duration_minutes"),
         "results": payload.get("results", {}),
         "summary": payload.get("summary", {}),
         "decision": payload.get("decision", {}),
     })
     save_traffic_history(history)
+
+
+def _build_signal_wall_snapshot(intersection):
+    intersection_id = intersection.get("id")
+    lane_media = _build_lane_media_map(intersection)
+    optimizer = get_signal_optimizer()
+    parsed_history = []
+
+    for item in load_traffic_history():
+        if item.get("intersection_id") != intersection_id:
+            continue
+        try:
+            timestamp = datetime.fromisoformat(item.get("timestamp"))
+        except (TypeError, ValueError):
+            timestamp = datetime.min
+        parsed_history.append((timestamp, item))
+
+    parsed_history.sort(key=lambda entry: entry[0])
+    latest_item = parsed_history[-1][1] if parsed_history else None
+
+    if not latest_item:
+        return {
+            "intersection": {
+                "id": intersection["id"],
+                "name": intersection["name"],
+                "location": intersection.get("location", "Unknown location"),
+            },
+            "decision": {},
+            "optimization": {"cycle_time": 0, "green_times": {}},
+            "results": {},
+            "lane_media": lane_media,
+            "analysis_mode": None,
+            "timestamp": None,
+            "event_duration_minutes": None,
+            "has_live_signal": False,
+        }
+
+    results = latest_item.get("results") or {}
+    traffic_data = {}
+    for lane in intersection.get("lanes", []):
+        lane_id = lane.get("id")
+        result = results.get(lane_id) if isinstance(results, dict) else None
+        if not isinstance(result, dict):
+            continue
+        direction = (result.get("direction") or lane.get("direction") or lane_id).title()
+        vehicles = max(0, int(result.get("vehicle_count", 0)))
+        traffic_data[direction] = {
+            "vehicles": vehicles,
+            "priority": optimizer._get_priority(vehicles),
+        }
+
+    optimization = optimizer.adaptive_timing(
+        {direction: item["vehicles"] for direction, item in traffic_data.items()}
+    ) if traffic_data else {"cycle_time": 0, "green_times": {}}
+
+    return {
+        "intersection": {
+            "id": intersection["id"],
+            "name": intersection["name"],
+            "location": intersection.get("location", "Unknown location"),
+        },
+        "decision": latest_item.get("decision", {}),
+        "optimization": optimization,
+        "results": results,
+        "lane_media": lane_media,
+        "analysis_mode": latest_item.get("analysis_mode"),
+        "timestamp": latest_item.get("timestamp"),
+        "event_duration_minutes": latest_item.get("event_duration_minutes"),
+        "has_live_signal": bool(results),
+    }
 
 
 def _build_history_analytics(intersection, days=7):
@@ -328,6 +553,7 @@ def _build_history_analytics(intersection, days=7):
             "daily_totals": [],
             "lane_averages": [],
             "timeline": [],
+            "recent_records": [],
             "insights": [
                 "No history yet. Upload lane images and run an analysis to start building real traffic trends for this intersection."
             ],
@@ -431,6 +657,18 @@ def _build_history_analytics(intersection, days=7):
         "daily_totals": daily_totals,
         "lane_averages": lane_averages,
         "timeline": timeline[-18:],
+        "recent_records": [
+            {
+                "id": item.get("id"),
+                "timestamp": timestamp.isoformat(),
+                "display_timestamp": timestamp.strftime("%d %b %Y, %I:%M %p"),
+                "analysis_mode": item.get("analysis_mode", "photo"),
+                "event_duration_minutes": item.get("event_duration_minutes", 15),
+                "total_vehicles": int((item.get("summary") or {}).get("total_vehicles", 0)),
+                "lanes_analyzed": int((item.get("summary") or {}).get("lanes_analyzed", 0)),
+            }
+            for timestamp, item in parsed_history[-12:]
+        ][::-1],
         "insights": [
             f"Peak traffic pressure usually appears around {best_hour['label']} based on the current {source}.",
             f"{busiest_lane['lane_name']} is the heaviest approach on average at {busiest_lane['average_vehicles']} vehicles per sample.",
@@ -553,6 +791,92 @@ def _build_lane_analysis(intersection, uploaded_files):
         "schedule": schedule,
         "recommendations": recommendations,
         "decision": decision,
+    }, None
+
+
+def _build_lane_video_analysis(intersection, uploaded_videos, analysis_timestamp=None, event_duration_minutes=15):
+    detector = get_traffic_detector()
+    if detector is None:
+        return None, "YOLO model is not available. Install the dependencies and keep yolov8n.pt in the project root."
+
+    optimizer = get_signal_optimizer()
+    lane_lookup = {lane["id"]: lane for lane in intersection.get("lanes", [])}
+    lane_results = {}
+    traffic_data = {}
+    saved_media = {}
+    total_vehicles = 0
+
+    for lane_id, file_storage in uploaded_videos.items():
+        lane = lane_lookup.get(lane_id)
+        if not lane:
+            continue
+
+        saved_video, error = _save_lane_video(intersection["id"], lane_id, file_storage)
+        if error:
+            return None, f"{lane.get('name', lane_id)}: {error}"
+
+        result = detector.detect_vehicles_in_video(saved_video["path"], max_frames=60)
+        if "error" in result:
+            return None, f"{lane.get('name', lane_id)}: {result['error']}"
+
+        direction = lane.get("direction", lane_id).title()
+        vehicles = int(round(result.get("avg_vehicles_per_frame", 0)))
+        priority = optimizer._get_priority(vehicles)
+
+        lane_results[lane_id] = {
+            "lane_id": lane_id,
+            "lane_name": lane.get("name", direction),
+            "direction": direction,
+            "vehicle_count": vehicles,
+            "density_level": result.get("density_level", _density_level_from_count(vehicles)),
+            "frames_processed": result.get("frames_processed", 0),
+            "max_vehicles_in_frame": result.get("max_vehicles_in_frame", 0),
+            "video_url": saved_video["static_url"],
+            "timestamp": analysis_timestamp or result.get("timestamp"),
+        }
+        traffic_data[direction] = {"vehicles": vehicles, "priority": priority}
+        saved_media[lane_id] = {
+            "video_url": saved_video["static_url"],
+            "uploaded_at": datetime.now().replace(microsecond=0).isoformat(),
+            "analysis_timestamp": analysis_timestamp,
+            "event_duration_minutes": event_duration_minutes,
+            "lane_name": lane.get("name", direction),
+            "direction": direction,
+        }
+        total_vehicles += vehicles
+
+    if not lane_results:
+        return None, "Upload at least one lane video to run the simulation."
+
+    persisted_media = _save_lane_media(intersection, saved_media)
+    optimization = optimizer.adaptive_timing({direction: data["vehicles"] for direction, data in traffic_data.items()})
+    schedule = optimizer.get_signal_schedule(traffic_data)
+    congestion_score = min(100, int((total_vehicles / max(len(traffic_data), 1)) * 4))
+    recommendations = optimizer.get_recommendations(traffic_data, congestion_score)
+    decision = optimizer.build_phase_decision(traffic_data)
+
+    return {
+        "intersection": {
+            "id": intersection["id"],
+            "name": intersection["name"],
+            "location": intersection.get("location", "Unknown location"),
+        },
+        "analysis_mode": "video",
+        "analysis_timestamp": analysis_timestamp,
+        "event_duration_minutes": event_duration_minutes,
+        "results": lane_results,
+        "traffic_data": traffic_data,
+        "summary": {
+            "total_vehicles": total_vehicles,
+            "lanes_analyzed": len(lane_results),
+            "highest_congestion_lane": max(lane_results.values(), key=lambda item: item["vehicle_count"])["lane_name"],
+            "highest_congestion_density": max(lane_results.values(), key=lambda item: item["vehicle_count"])["density_level"],
+        },
+        "optimization": optimization,
+        "schedule": schedule,
+        "recommendations": recommendations,
+        "decision": decision,
+        "lane_media": persisted_media,
     }, None
 
 
@@ -960,7 +1284,19 @@ def smart_signal(intersection_id):
         flash("Intersection not found.", "error")
         return redirect(url_for("intersections"))
     analytics = _build_history_analytics(intersection, days=7)
-    return render_template("smart_signal.html", intersection=intersection, analytics=analytics)
+    lane_media = _build_lane_media_map(intersection)
+    return render_template("smart_signal.html", intersection=intersection, analytics=analytics, lane_media=lane_media)
+
+
+@app.route("/intersection/<intersection_id>/signal-wall")
+@login_required
+def signal_wall(intersection_id):
+    intersection = get_intersection(intersection_id)
+    if not intersection:
+        flash("Intersection not found.", "error")
+        return redirect(url_for("intersections"))
+    signal_snapshot = _build_signal_wall_snapshot(intersection)
+    return render_template("signal_wall.html", intersection=intersection, signal_snapshot=signal_snapshot)
 
 
 @app.route("/api/intersection/<intersection_id>/smart-signal/analyze", methods=["POST"])
@@ -978,14 +1314,49 @@ def analyze_smart_signal(intersection_id):
         uploaded_files[lane_id] = request.files[key]
 
     analysis_timestamp = _normalize_analysis_timestamp(request.form.get("analysis_timestamp"))
+    event_duration_minutes = _normalize_event_duration(request.form.get("event_duration_minutes"))
 
     payload, error = _build_lane_analysis(intersection, uploaded_files)
     if error:
         return {"error": error}, 400
+    payload["analysis_mode"] = "photo"
     payload["analysis_timestamp"] = analysis_timestamp
+    payload["event_duration_minutes"] = event_duration_minutes
+    payload["lane_media"] = _build_lane_media_map(intersection)
     _append_traffic_history(intersection, payload)
     payload["analytics"] = _build_history_analytics(intersection, days=7)
 
+    return payload
+
+
+@app.route("/api/intersection/<intersection_id>/smart-signal/analyze-video", methods=["POST"])
+@login_required
+def analyze_smart_signal_video(intersection_id):
+    intersection = get_intersection(intersection_id)
+    if not intersection:
+        return {"error": "Intersection not found."}, 404
+
+    uploaded_videos = {}
+    for key in request.files:
+        if not key.startswith("videos[") or not key.endswith("]"):
+            continue
+        lane_id = key[7:-1]
+        uploaded_videos[lane_id] = request.files[key]
+
+    analysis_timestamp = _normalize_analysis_timestamp(request.form.get("analysis_timestamp"))
+    event_duration_minutes = _normalize_event_duration(request.form.get("event_duration_minutes"))
+    payload, error = _build_lane_video_analysis(
+        intersection,
+        uploaded_videos,
+        analysis_timestamp=analysis_timestamp,
+        event_duration_minutes=event_duration_minutes,
+    )
+    if error:
+        return {"error": error}, 400
+
+    payload["analysis_mode"] = "video"
+    _append_traffic_history(intersection, payload)
+    payload["analytics"] = _build_history_analytics(intersection, days=7)
     return payload
 
 
@@ -1005,11 +1376,14 @@ def analyze_traffic():
         uploaded_files[lane_id] = request.files[key]
 
     analysis_timestamp = _normalize_analysis_timestamp(request.form.get("analysis_timestamp"))
+    event_duration_minutes = _normalize_event_duration(request.form.get("event_duration_minutes"))
 
     payload, error = _build_lane_analysis(intersection, uploaded_files)
     if error:
         return {"error": error}, 400
+    payload["analysis_mode"] = "photo"
     payload["analysis_timestamp"] = analysis_timestamp
+    payload["event_duration_minutes"] = event_duration_minutes
     _append_traffic_history(intersection, payload)
 
     return payload
@@ -1031,6 +1405,97 @@ def smart_signal_history(intersection_id):
     return {
         "intersection_id": intersection_id,
         "analytics": _build_history_analytics(intersection, days=days),
+    }
+
+
+@app.route("/api/intersection/<intersection_id>/signal-wall")
+@login_required
+def signal_wall_data(intersection_id):
+    intersection = get_intersection(intersection_id)
+    if not intersection:
+        return {"error": "Intersection not found."}, 404
+    return _build_signal_wall_snapshot(intersection)
+
+
+@app.route("/api/intersection/<intersection_id>/lane/<lane_id>/video", methods=["DELETE"])
+@login_required
+def delete_lane_video(intersection_id, lane_id):
+    intersection = get_intersection(intersection_id)
+    if not intersection:
+        return {"error": "Intersection not found."}, 404
+
+    deleted = _delete_lane_video(intersection, lane_id)
+    if not deleted:
+        return {"error": "No saved video found for this lane."}, 404
+
+    return {
+        "ok": True,
+        "lane_id": lane_id,
+        "lane_media": _build_lane_media_map(intersection),
+        "message": "Lane video removed successfully.",
+    }
+
+
+@app.route("/api/intersection/<intersection_id>/smart-signal/photo-analyses", methods=["DELETE"])
+@login_required
+def delete_photo_analyses(intersection_id):
+    intersection = get_intersection(intersection_id)
+    if not intersection:
+        return {"error": "Intersection not found."}, 404
+
+    deleted = _delete_photo_analysis_history(intersection_id)
+    if not deleted:
+        return {"error": "No photo-based analyses were found for this intersection."}, 404
+
+    return {
+        "ok": True,
+        "analytics": _build_history_analytics(intersection, days=7),
+        "message": "Photo-based analyses deleted successfully.",
+    }
+
+
+@app.route("/api/intersection/<intersection_id>/analysis/<analysis_id>", methods=["PATCH"])
+@login_required
+def update_analysis_record(intersection_id, analysis_id):
+    intersection = get_intersection(intersection_id)
+    if not intersection:
+        return {"error": "Intersection not found."}, 404
+
+    data = request.get_json(silent=True) or {}
+    analysis_timestamp = _normalize_analysis_timestamp(data.get("analysis_timestamp"))
+    event_duration_minutes = _normalize_event_duration(data.get("event_duration_minutes"))
+    updated = _update_analysis_record(
+        intersection_id,
+        analysis_id,
+        analysis_timestamp=analysis_timestamp,
+        event_duration_minutes=event_duration_minutes,
+    )
+    if not updated:
+        return {"error": "Analysis record not found."}, 404
+
+    return {
+        "ok": True,
+        "record": updated,
+        "analytics": _build_history_analytics(intersection, days=7),
+        "message": "Analysis record updated successfully.",
+    }
+
+
+@app.route("/api/intersection/<intersection_id>/analysis/<analysis_id>", methods=["DELETE"])
+@login_required
+def delete_analysis_record(intersection_id, analysis_id):
+    intersection = get_intersection(intersection_id)
+    if not intersection:
+        return {"error": "Intersection not found."}, 404
+
+    deleted = _delete_analysis_record(intersection_id, analysis_id)
+    if not deleted:
+        return {"error": "Analysis record not found."}, 404
+
+    return {
+        "ok": True,
+        "analytics": _build_history_analytics(intersection, days=7),
+        "message": "Analysis record removed successfully.",
     }
 
 

@@ -1,0 +1,204 @@
+{% extends "base.html" %}
+{% block title %}{{ intersection.name }} Signal Wall - Traffix{% endblock %}
+{% block extra_css %}
+<style>
+  .wall-page{min-height:100vh;padding:18px;background:radial-gradient(circle at top,rgba(14,165,233,.12),transparent 28%),radial-gradient(circle at 80% 15%,rgba(34,197,94,.08),transparent 24%),linear-gradient(180deg,#05070a 0%,#020304 100%)}
+  .wall-shell{max-width:1680px;margin:0 auto;display:grid;gap:14px}
+  .wall-card,.wall-tile{border:1px solid rgba(148,163,184,.14);background:linear-gradient(180deg,rgba(15,23,42,.72),rgba(5,9,16,.88));box-shadow:0 24px 80px rgba(0,0,0,.34)}
+  .wall-card{padding:18px 20px;border-radius:24px}
+  .wall-topbar{display:flex;justify-content:space-between;align-items:flex-start;gap:18px;flex-wrap:wrap}
+  .wall-title{font-size:clamp(1.8rem,3vw,3rem);font-weight:800;line-height:1.03;letter-spacing:-.05em;margin:6px 0}
+  .wall-subtitle{color:var(--text-secondary);max-width:72ch}
+  .wall-actions{display:flex;gap:10px;flex-wrap:wrap}
+  .wall-summary{display:grid;grid-template-columns:1.15fr .85fr;gap:14px}
+  .decision-card{padding:18px;border-radius:22px;background:rgba(116,34,230,.1);border:1px solid rgba(116,34,230,.22)}
+  .decision-card h2{font-size:2rem;margin:6px 0 8px}
+  .decision-meta{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
+  .chip,.pill{display:inline-flex;border-radius:999px;font-weight:700}
+  .chip{padding:7px 12px;font-size:.82rem}
+  .chip.green,.pill.go{background:rgba(34,197,94,.14);color:#86efac}
+  .chip.red,.pill.stop{background:rgba(248,113,113,.14);color:#fca5a5}
+  .chip.blue,.pill.wait{background:rgba(59,130,246,.15);color:#93c5fd}
+  .wall-stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+  .stat-card{padding:16px;border-radius:20px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08)}
+  .stat-label{text-transform:uppercase;letter-spacing:.08em;font-size:.74rem;color:var(--text-muted);font-weight:700}
+  .stat-value{font-size:1.5rem;font-weight:800;margin-top:8px}
+  .wall-grid{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(280px,1fr))}
+  .wall-tile{position:relative;min-height:0;aspect-ratio:16/10;border-radius:22px;overflow:hidden;background:linear-gradient(180deg,rgba(7,10,16,.94),rgba(2,6,12,.98)),repeating-linear-gradient(-45deg,rgba(255,255,255,.018) 0,rgba(255,255,255,.018) 10px,transparent 10px,transparent 22px)}
+  .tile-header{position:absolute;top:0;left:0;right:0;z-index:2;display:flex;justify-content:space-between;align-items:flex-start;gap:12px;padding:16px 16px 28px;background:linear-gradient(180deg,rgba(4,6,9,.92) 0%,rgba(4,6,9,.46) 72%,rgba(4,6,9,0) 100%)}
+  .tile-title{font-size:1.02rem;font-weight:700;letter-spacing:-.02em}
+  .tile-meta{color:rgba(255,255,255,.56);font-size:.74rem;text-transform:uppercase;letter-spacing:.06em;margin-top:2px}
+  .tile-feed{position:relative;height:100%;display:grid;place-items:center;overflow:hidden;background:radial-gradient(circle at center,rgba(15,23,42,.38),rgba(2,6,12,.98)),#07090d}
+  .tile-video{width:100%;height:100%;object-fit:cover;display:block;background:#05070b}
+  .tile-overlay{position:absolute;inset:0;display:grid;place-items:center;padding:24px;background:linear-gradient(180deg,rgba(2,6,12,.14),rgba(2,6,12,.7))}
+  .tile-visual{display:grid;justify-items:center;gap:12px}
+  .signal-head{width:92px;padding:10px;border-radius:22px;background:linear-gradient(180deg,#17181d,#0c0d11);border:1px solid rgba(255,255,255,.1);display:grid;gap:8px}
+  .signal-lamp{width:52px;height:52px;border-radius:50%;margin:0 auto;opacity:.25;transform:scale(.96);transition:opacity .18s ease,transform .18s ease}
+  .signal-lamp.red{background:radial-gradient(circle at 35% 30%,#fca5a5,#991b1b 68%)}
+  .signal-lamp.yellow{background:radial-gradient(circle at 35% 30%,#fde68a,#a16207 68%)}
+  .signal-lamp.green{background:radial-gradient(circle at 35% 30%,#86efac,#166534 68%)}
+  .signal-lamp.active{opacity:1;transform:scale(1)}
+  .tile-phase{text-align:center}
+  .tile-phase strong{display:block;font-size:1rem;margin-top:4px}
+  .tile-phase small{display:block;color:rgba(255,255,255,.64);margin-top:4px}
+  .tile-footer{position:absolute;left:0;right:0;bottom:0;z-index:2;padding:38px 16px 16px;background:linear-gradient(180deg,rgba(4,6,9,0) 0%,rgba(4,6,9,.58) 35%,rgba(4,6,9,.92) 100%)}
+  .tile-stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+  .tile-stat{padding:9px 10px;border-radius:14px;background:rgba(15,23,42,.72);border:1px solid rgba(148,163,184,.18)}
+  .tile-stat-label{text-transform:uppercase;letter-spacing:.08em;font-size:.66rem;color:rgba(255,255,255,.5)}
+  .tile-stat-value{margin-top:4px;font-size:.92rem;font-weight:700;color:#f8fafc}
+  .empty-wall{padding:48px 24px;text-align:center;color:var(--text-secondary)}
+  .empty-wall strong{display:block;color:#f8fafc;font-size:1.08rem;margin-bottom:8px}
+  @media (max-width:1024px){.wall-summary{grid-template-columns:1fr}.wall-stats{grid-template-columns:1fr 1fr}}
+  @media (max-width:700px){.wall-stats,.tile-stats{grid-template-columns:1fr}}
+</style>
+{% endblock %}
+{% block body %}
+<main class="wall-page">
+  <div class="wall-shell">
+    <section class="wall-card">
+      <div class="wall-topbar">
+        <div>
+          <div class="page-eyebrow">Dedicated Signal Wall</div>
+          <h1 class="wall-title">{{ intersection.name }}</h1>
+          <p class="wall-subtitle">This separate control view shows the latest real signal decision, lane videos, and per-lane light states from your saved AI traffic analyses.</p>
+        </div>
+        <div class="wall-actions">
+          <a href="{{ url_for('smart_signal', intersection_id=intersection.id) }}" class="btn btn-secondary">Back to AI smart signal</a>
+          <a href="{{ url_for('intersection_monitor', intersection_id=intersection.id) }}" class="btn btn-ghost">Open CCTV view</a>
+        </div>
+      </div>
+    </section>
+
+    <section class="wall-summary">
+      <article class="wall-card decision-card" id="decision-card"></article>
+      <article class="wall-card">
+        <div class="wall-stats" id="summary-stats"></div>
+      </article>
+    </section>
+
+    <section class="wall-grid" id="signal-wall-grid"></section>
+  </div>
+</main>
+{% endblock %}
+{% block extra_js %}
+<script>
+  (function () {
+    const intersection = {{ intersection | tojson }};
+    let snapshot = {{ signal_snapshot | tojson }};
+    const decisionCard = document.getElementById("decision-card");
+    const summaryStats = document.getElementById("summary-stats");
+    const signalWallGrid = document.getElementById("signal-wall-grid");
+
+    function escapeHtml(value) {
+      return String(value ?? "").replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;").replaceAll("'", "&#39;");
+    }
+
+    function formatTimestamp(value) {
+      if (!value) return "No analysis yet";
+      return escapeHtml(String(value).replace("T", " "));
+    }
+
+    function renderSignalWall(data) {
+      const decision = data?.decision || {};
+      const optimization = data?.optimization || {};
+      const results = data?.results || {};
+      const laneMedia = data?.lane_media || {};
+      const goDirection = decision.go_direction || "Awaiting analysis";
+      const stopDirections = decision.stop_directions || [];
+      const greenTime = decision.green_time || 0;
+      const chips = decision.go_direction
+        ? [`<span class="chip green">${escapeHtml(goDirection)} gets green</span>`, `<span class="chip red">${stopDirections.length} approaches stay stop</span>`, `<span class="chip blue">${greenTime}s green window</span>`]
+        : [`<span class="chip blue">No live signal yet</span>`];
+
+      decisionCard.innerHTML = `<div class="page-eyebrow">Live controller decision</div><h2>${escapeHtml(goDirection)}</h2><p class="wall-subtitle">${escapeHtml(decision.reason || "Run a photo or video analysis from the AI smart signal page to create the first real signal decision.")}</p><div class="decision-meta">${chips.join("")}</div>`;
+
+      summaryStats.innerHTML = `
+        <div class="stat-card"><div class="stat-label">Cycle time</div><div class="stat-value">${optimization.cycle_time || 0}s</div></div>
+        <div class="stat-card"><div class="stat-label">Latest update</div><div class="stat-value">${formatTimestamp(data.timestamp)}</div></div>
+        <div class="stat-card"><div class="stat-label">Analysis mode</div><div class="stat-value">${escapeHtml(data.analysis_mode || "None yet")}</div></div>
+        <div class="stat-card"><div class="stat-label">Occurrence duration</div><div class="stat-value">${data.event_duration_minutes || 0} min</div></div>
+      `;
+
+      if (!data?.has_live_signal) {
+        signalWallGrid.innerHTML = `<article class="wall-card empty-wall"><strong>No signal analysis yet</strong>Run a photo or video analysis in AI Smart Signal, then reopen or leave this wall open and it will refresh automatically.</article>`;
+        return;
+      }
+
+      const laneStates = Object.values(results || {});
+      signalWallGrid.innerHTML = intersection.lanes.map((lane) => {
+        const result = laneStates.find((item) => String(item.lane_id) === String(lane.id));
+        const media = laneMedia?.[lane.id] || {};
+        const direction = result?.direction || (lane.direction || lane.id).replace(/\b\w/g, (m) => m.toUpperCase());
+        const isGo = decision.go_direction === direction;
+        const stateClass = decision.go_direction ? (isGo ? "go" : "stop") : "wait";
+        const label = decision.go_direction ? (isGo ? "Go" : "Stop") : "Waiting";
+        const timestamp = media.analysis_timestamp ? formatTimestamp(media.analysis_timestamp) : formatTimestamp(result?.timestamp || data.timestamp);
+        const duration = `${escapeHtml(media.event_duration_minutes || data.event_duration_minutes || 0)} min`;
+        const actionText = isGo ? "Release this lane" : (decision.go_direction ? "Hold on red" : "No phase yet");
+        const videoMarkup = media.video_url ? `<video class="tile-video" controls muted preload="metadata" src="${escapeHtml(media.video_url)}"></video>` : "";
+        return `<article class="wall-tile">
+          <div class="tile-header">
+            <div>
+              <div class="tile-title">${escapeHtml(result?.lane_name || lane.name)}</div>
+              <div class="tile-meta">${escapeHtml(direction)}</div>
+            </div>
+            <span class="pill ${stateClass}">${label}</span>
+          </div>
+          <div class="tile-feed">
+            ${videoMarkup}
+            <div class="tile-overlay">
+              <div class="tile-visual">
+                <div class="signal-head">
+                  <div class="signal-lamp red ${!decision.go_direction || !isGo ? "active" : ""}"></div>
+                  <div class="signal-lamp yellow"></div>
+                  <div class="signal-lamp green ${isGo ? "active" : ""}"></div>
+                </div>
+                <div class="tile-phase">
+                  <div class="page-eyebrow">Lane signal</div>
+                  <strong>${label}</strong>
+                  <small>${escapeHtml(actionText)}</small>
+                </div>
+              </div>
+            </div>
+            <div class="tile-footer">
+              <div class="tile-stats">
+                <div class="tile-stat">
+                  <div class="tile-stat-label">Detected vehicles</div>
+                  <div class="tile-stat-value">${result?.vehicle_count ?? "-"}</div>
+                </div>
+                <div class="tile-stat">
+                  <div class="tile-stat-label">Suggested green</div>
+                  <div class="tile-stat-value">${(optimization.green_times || {})[direction] ?? 0}s</div>
+                </div>
+                <div class="tile-stat">
+                  <div class="tile-stat-label">Occurrence time</div>
+                  <div class="tile-stat-value">${timestamp}</div>
+                </div>
+                <div class="tile-stat">
+                  <div class="tile-stat-label">Duration</div>
+                  <div class="tile-stat-value">${duration}</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </article>`;
+      }).join("");
+    }
+
+    async function refreshSignalWall() {
+      try {
+        const response = await fetch(`/api/intersection/${intersection.id}/signal-wall`, { headers: { "Accept": "application/json" } });
+        const payload = await response.json();
+        if (!response.ok) throw new Error(payload.error || "Could not load signal wall.");
+        snapshot = payload;
+        renderSignalWall(snapshot);
+      } catch (error) {
+        console.error(error);
+      }
+    }
+
+    renderSignalWall(snapshot);
+    window.setInterval(refreshSignalWall, 15000);
+  })();
+</script>
+{% endblock %}
