@@ -16,7 +16,6 @@ Python web application (Flask).
 import os
 import json
 from pathlib import Path
-from datetime import datetime
 
 from flask import Flask, render_template, request, redirect, url_for, flash, session
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -26,23 +25,10 @@ import firebase_admin
 from firebase_admin import credentials
 
 # Initialize Firebase Admin with service account
-cred = credentials.Certificate("traffix-c507d-firebase-adminsdk.json.json")
+cred = credentials.Certificate("traffix-40acf-firebase-adminsdk-fbsvc-b4a43d8111.json")
 firebase_admin.initialize_app(cred)
 
 from firebase_admin import auth
-
-# AI/ML Module imports
-try:
-    from traffic_detector import TrafficDetector, get_traffic_detector
-    from signal_optimizer import get_signal_optimizer
-    AI_ML_AVAILABLE = True
-except ImportError as e:
-    print(f"Warning: AI/ML modules not available: {e}")
-    AI_ML_AVAILABLE = False
-
-# Global variables for lazy loading
-detector = None
-optimizer = None
 
 # Firebase Authentication helper functions
 def create_firebase_user(email, password, display_name=None):
@@ -58,17 +44,9 @@ def create_firebase_user(email, password, display_name=None):
 
 def verify_firebase_token(id_token):
     try:
-        print(f"[TOKEN_VERIFY] Verifying token: {id_token[:50]}...")
         decoded_token = auth.verify_id_token(id_token)
-        print(f"[TOKEN_VERIFY] ✓ Token verified successfully")
-        print(f"[TOKEN_VERIFY] Decoded token keys: {list(decoded_token.keys())}")
-        print(f"[TOKEN_VERIFY] UID: {decoded_token.get('uid')}")
-        print(f"[TOKEN_VERIFY] Email: {decoded_token.get('email')}")
         return decoded_token
     except Exception as e:
-        print(f"[TOKEN_VERIFY] ❌ Token verification failed")
-        print(f"[TOKEN_VERIFY] Error type: {type(e).__name__}")
-        print(f"[TOKEN_VERIFY] Error message: {str(e)}")
         return None
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -217,6 +195,24 @@ def toggle_camera(intersection_id, lane_id):
     return False
 
 
+def set_all_cameras(intersection_id, enabled):
+    intersections = load_intersections()
+    for intersection in intersections:
+        if intersection["id"] == intersection_id:
+            changed = False
+            for lane in intersection.get("lanes", []):
+                camera = lane.get("camera") or {}
+                if "stream_url" not in camera:
+                    camera["stream_url"] = f"https://example.com/stream/{camera.get('id', lane['id'])}"
+                if camera.get("status") != enabled:
+                    camera["status"] = enabled
+                    changed = True
+            if changed:
+                save_intersections(intersections)
+            return True
+    return False
+
+
 def add_intersection(name, location, num_roads=4):
     intersections = load_intersections()
     new_id = f"int-{len(intersections) + 1:03d}"
@@ -324,34 +320,21 @@ def login():
         if request.is_json:
             data = request.get_json()
             id_token = data.get("idToken")
-            print(f"\n[LOGIN] Firebase sign-in attempt")
-            print(f"[LOGIN] ID Token received: {id_token[:50] if id_token else 'NONE'}...")
-            
             if not id_token:
-                print(f"[LOGIN] ❌ No ID token provided")
                 return {"success": False, "message": "Missing ID token."}, 400
-            
             decoded = verify_firebase_token(id_token)
-            print(f"[LOGIN] Token verification result: {decoded}")
-            
             if not decoded:
-                print(f"[LOGIN] ❌ Token verification failed")
                 return {"success": False, "message": "Invalid ID token."}, 401
-            
-            print(f"[LOGIN] ✓ Token verified for user: {decoded.get('email')}")
             session["user_id"] = decoded["uid"]  # Backward compat
             session["user_uid"] = decoded["uid"]
             session["user_email"] = decoded["email"]
             session["user_name"] = decoded.get("name", decoded["email"])
-            session.modified = True  # Force session to be saved
-            print(f"[LOGIN] ✓ Session created for: {decoded['email']}")
-            print(f"[LOGIN] Session data: uid={session.get('user_uid')}, email={session.get('user_email')}")
             return {"success": True, "message": "Login successful."}
         else:
             # Fallback for form-based login
             email = request.form.get("email", "").strip()
             password = request.form.get("password", "")
-            print(f"[LOGIN] Form login attempt - Email: {email}")
+            print(f"[DEBUG] Login attempt - Email: {email}")
             if not email or not password:
                 flash("Please enter email and password.", "error")
                 return redirect(url_for("login"))
@@ -401,29 +384,120 @@ def register():
 @app.route("/dashboard")
 @login_required
 def dashboard():
-    
-    # Calculate real-time stats from data
     intersections = load_intersections()
     total_intersections = len(intersections)
-    
-    # Count active signals (lanes with cameras enabled)
-    active_signals = 0
-    sensors_connected = 0
-    
+    total_cameras = 0
+    active_cameras = 0
+    maintenance_intersections = 0
+    healthy_intersections = 0
+    alerts = []
+    priority_intersections = []
+
     for intersection in intersections:
-        if intersection.get("status") == "active":
-            for lane in intersection.get("lanes", []):
-                if lane.get("camera", {}).get("status"):
-                    active_signals += 1
-                    sensors_connected += 1
-    
+        lanes = intersection.get("lanes", [])
+        camera_total = len(lanes)
+        camera_active = sum(1 for lane in lanes if lane.get("camera", {}).get("status"))
+        camera_offline = camera_total - camera_active
+        status = intersection.get("status", "active")
+
+        total_cameras += camera_total
+        active_cameras += camera_active
+
+        if status == "maintenance":
+            maintenance_intersections += 1
+
+        if status == "active" and camera_total > 0 and camera_active == camera_total:
+            healthy_intersections += 1
+
+        if status == "maintenance":
+            alerts.append({
+                "tone": "error",
+                "title": f"{intersection['name']} is under maintenance",
+                "copy": f"{intersection['location']} needs review before normal monitoring resumes.",
+                "intersection_id": intersection["id"],
+            })
+        elif camera_total == 0:
+            alerts.append({
+                "tone": "warning",
+                "title": f"{intersection['name']} has no cameras configured",
+                "copy": "Add lane cameras before using live monitoring.",
+                "intersection_id": intersection["id"],
+            })
+        elif camera_active == 0:
+            alerts.append({
+                "tone": "error",
+                "title": f"All cameras are off at {intersection['name']}",
+                "copy": f"{camera_total} lane camera(s) are currently disabled.",
+                "intersection_id": intersection["id"],
+            })
+        elif camera_offline > 0:
+            alerts.append({
+                "tone": "warning",
+                "title": f"{intersection['name']} has reduced coverage",
+                "copy": f"{camera_offline} of {camera_total} camera(s) are disabled.",
+                "intersection_id": intersection["id"],
+            })
+
+        priority_intersections.append({
+            "id": intersection["id"],
+            "name": intersection["name"],
+            "location": intersection.get("location", "Unknown location"),
+            "status": status,
+            "camera_total": camera_total,
+            "camera_active": camera_active,
+            "camera_offline": camera_offline,
+            "priority_score": (
+                300 if status == "maintenance" else 0
+            ) + (
+                200 if camera_total > 0 and camera_active == 0 else 0
+            ) + (camera_offline * 10),
+        })
+
+    priority_intersections.sort(key=lambda item: (-item["priority_score"], item["name"]))
+    alerts = alerts[:4]
+    priority_intersections = priority_intersections[:4]
+
     stats = {
         "intersections": total_intersections,
-        "active_signals": active_signals,
-        "sensors": sensors_connected
+        "active_signals": active_cameras,
+        "sensors": total_cameras,
+        "offline_cameras": total_cameras - active_cameras,
+        "maintenance": maintenance_intersections,
+        "healthy_intersections": healthy_intersections,
     }
-    
-    return render_template("dashboard.html", user_name=session.get("user_name", "User"), stats=stats)
+
+    quick_actions = [
+        {
+            "title": "Manage intersections",
+            "copy": "Open the full directory to edit lanes, cameras, and status.",
+            "href": url_for("intersections"),
+            "label": "Open intersections",
+            "tone": "primary",
+        },
+        {
+            "title": "Review profile",
+            "copy": "Update account details and keep security settings in one place.",
+            "href": url_for("profile"),
+            "label": "Open profile",
+            "tone": "secondary",
+        },
+        {
+            "title": "Return home",
+            "copy": "Jump back to the landing page and top-level navigation.",
+            "href": url_for("index"),
+            "label": "View homepage",
+            "tone": "ghost",
+        },
+    ]
+
+    return render_template(
+        "dashboard.html",
+        user_name=session.get("user_name", "User"),
+        stats=stats,
+        alerts=alerts,
+        priority_intersections=priority_intersections,
+        quick_actions=quick_actions,
+    )
 
 
 @app.route("/logout")
@@ -493,17 +567,89 @@ def intersection_detail(intersection_id):
     return render_template("intersection_detail.html", intersection=intersection)
 
 
+@app.route("/intersection/<intersection_id>/monitor")
+@login_required
+def intersection_monitor(intersection_id):
+    intersection = get_intersection(intersection_id)
+    if not intersection:
+        flash("Intersection not found.", "error")
+        return redirect(url_for("intersections"))
+    return render_template("intersection_monitor.html", intersection=intersection)
+
+
 @app.route("/camera/toggle/<intersection_id>/<lane_id>", methods=["POST"])
 @login_required
 def camera_toggle(intersection_id, lane_id):
-    
     success = toggle_camera(intersection_id, lane_id)
+
+    lane = None
+    intersection = get_intersection(intersection_id)
+    if intersection:
+        for item in intersection.get("lanes", []):
+            if item.get("id") == lane_id:
+                lane = item
+                break
+
+    wants_json = (
+        request.headers.get("X-Requested-With") == "XMLHttpRequest"
+        or request.accept_mimetypes["application/json"] >= request.accept_mimetypes["text/html"]
+    )
+
+    if wants_json:
+        if success and lane:
+            return {
+                "ok": True,
+                "lane_id": lane_id,
+                "camera_status": bool(lane.get("camera", {}).get("status")),
+                "message": "Camera status updated successfully!",
+            }
+        return {"ok": False, "lane_id": lane_id, "message": "Camera not found."}, 404
+
     if success:
         flash("Camera status updated successfully!", "success")
     else:
         flash("Camera not found.", "error")
-    
+
     return redirect(url_for("intersection_detail", intersection_id=intersection_id))
+
+
+@app.route("/camera/set_all/<intersection_id>", methods=["POST"])
+@login_required
+def camera_set_all(intersection_id):
+    enabled = request.get_json(silent=True, force=False) or {}
+    target_state = bool(enabled.get("enabled"))
+
+    success = set_all_cameras(intersection_id, target_state)
+    intersection = get_intersection(intersection_id) if success else None
+    active_count = 0
+    total_count = 0
+    if intersection:
+        lanes = intersection.get("lanes", [])
+        total_count = len(lanes)
+        active_count = sum(1 for lane in lanes if lane.get("camera", {}).get("status"))
+
+    wants_json = (
+        request.headers.get("X-Requested-With") == "XMLHttpRequest"
+        or request.accept_mimetypes["application/json"] >= request.accept_mimetypes["text/html"]
+    )
+
+    if wants_json:
+        if success:
+            return {
+                "ok": True,
+                "enabled": target_state,
+                "active_count": active_count,
+                "total_count": total_count,
+                "message": "All cameras updated successfully!",
+            }
+        return {"ok": False, "message": "Intersection not found."}, 404
+
+    if success:
+        flash("All cameras updated successfully!", "success")
+    else:
+        flash("Intersection not found.", "error")
+
+    return redirect(url_for("intersection_monitor", intersection_id=intersection_id))
 
 
 @app.route("/intersection/add", methods=["POST"])
@@ -564,205 +710,7 @@ def intersection_delete(intersection_id):
     return redirect(url_for("intersections"))
 
 
-# ============= AI/ML TRAFFIC OPTIMIZATION ROUTES =============
-
-@app.route("/traffic-detection")
-@login_required
-def traffic_detection():
-    """Display traffic detection interface"""
-    intersections = load_intersections()
-    return render_template("traffic_detection.html", intersections=intersections)
-
-
-@app.route("/api/analyze-traffic", methods=["POST"])
-@login_required
-def api_analyze_traffic():
-    """
-    API endpoint to analyze traffic from uploaded images (one per lane).
-    Expects multipart/form-data with:
-    - 'intersection_id': ID of the intersection
-    - 'images[lane_id]': Multiple image files (one per lane)
-    """
-    if not AI_ML_AVAILABLE:
-        return {"error": "AI/ML modules not available"}, 503
-    
-    try:
-        global detector
-        
-        # Initialize detector on first use
-        if detector is None:
-            detector = get_traffic_detector()
-            if detector is None:
-                return {"error": "Could not initialize traffic detector"}, 500
-        
-        # Get intersection ID
-        intersection_id = request.form.get('intersection_id')
-        if not intersection_id:
-            return {"error": "No intersection_id provided"}, 400
-        
-        # Get the intersection to access lane information
-        intersection = get_intersection(intersection_id)
-        if not intersection:
-            return {"error": "Intersection not found"}, 404
-        
-        # Check if images were uploaded
-        image_count = 0
-        for key in request.files:
-            if key.startswith('images['):
-                image_count += 1
-        
-        if image_count == 0:
-            return {"error": "No image files provided"}, 400
-        
-        # Process each image
-        results = {}
-        total_vehicles = 0
-        highest_density = None
-        highest_density_lane = None
-        
-        import tempfile
-        import os
-        
-        # Create mapping of lane IDs to lane data
-        lane_map = {lane['id']: lane for lane in intersection.get('lanes', [])}
-        
-        for key in request.files:
-            if not key.startswith('images['):
-                continue
-            
-            # Extract lane ID from form field name (images[lane-id])
-            lane_id = key[7:-1]  # Remove 'images[' and ']'
-            file = request.files[key]
-            
-            if file.filename == '':
-                continue
-            
-            try:
-                # Save file temporarily
-                with tempfile.NamedTemporaryFile(suffix='.jpg', delete=False) as tmp:
-                    file.save(tmp.name)
-                    temp_path = tmp.name
-                
-                # Run detection
-                detection_result = detector.detect_vehicles(temp_path)
-                
-                # Get lane info
-                lane_info = lane_map.get(lane_id, {})
-                lane_direction = lane_info.get('direction', lane_id)
-                
-                # Store result with lane info
-                results[lane_id] = {
-                    'direction': lane_direction,
-                    'vehicle_count': detection_result.get('vehicle_count', 0),
-                    'density_level': detection_result.get('density_level', 'Low'),
-                    'timestamp': detection_result.get('timestamp'),
-                    'detections': detection_result.get('detections', [])
-                }
-                
-                # Track stats
-                total_vehicles += detection_result.get('vehicle_count', 0)
-                
-                density_priority = {'Low': 1, 'Medium': 2, 'High': 3, 'Critical': 4}
-                current_density_score = density_priority.get(results[lane_id]['density_level'], 0)
-                
-                if highest_density is None or current_density_score > density_priority.get(highest_density, 0):
-                    highest_density = results[lane_id]['density_level']
-                    highest_density_lane = lane_direction
-                
-                # Clean up temp file
-                os.remove(temp_path)
-                
-            except Exception as e:
-                results[lane_id] = {
-                    'direction': lane_map.get(lane_id, {}).get('direction', lane_id),
-                    'error': str(e)
-                }
-        
-        if not results:
-            return {"error": "No images could be processed"}, 400
-        
-        return {
-            'results': results,
-            'summary': {
-                'intersection_id': intersection_id,
-                'intersection_name': intersection.get('name'),
-                'total_vehicles': total_vehicles,
-                'highest_congestion_lane': highest_density_lane or 'N/A',
-                'highest_congestion_density': highest_density or 'N/A',
-                'timestamp': datetime.now().isoformat()
-            }
-        }, 200
-    
-    except Exception as e:
-        return {"error": f"Server error: {str(e)}"}, 500
-
-
-@app.route("/api/optimize-signals", methods=["POST"])
-@login_required
-def api_optimize_signals():
-    """
-    API endpoint to optimize signal timing based on traffic data.
-    Expects JSON with intersection_data:
-    {
-        "intersection_id": "int-001",
-        "traffic_data": {
-            "North": {"vehicles": 10, "priority": 2},
-            "South": {"vehicles": 5, "priority": 1},
-            ...
-        }
-    }
-    """
-    if not AI_ML_AVAILABLE:
-        return {"error": "AI/ML modules not available"}, 503
-    
-    try:
-        global optimizer
-        
-        data = request.get_json()
-        if not data:
-            return {"error": "No JSON data provided"}, 400
-        
-        traffic_data = data.get('traffic_data', {})
-        if not traffic_data:
-            return {"error": "No traffic_data provided"}, 400
-        
-        # Initialize optimizer on first use
-        if optimizer is None:
-            optimizer = get_signal_optimizer()
-        
-        # Optimize signal timing
-        optimization = optimizer.optimize_signal(traffic_data)
-        
-        # Get detailed schedule and recommendations
-        schedule = optimizer.get_signal_schedule(traffic_data)
-        recommendations = optimizer.get_recommendations(traffic_data)
-        
-        return {
-            "optimization": optimization,
-            "schedule": schedule,
-            "recommendations": recommendations
-        }, 200
-    
-    except Exception as e:
-        return {"error": f"Server error: {str(e)}"}, 500
-
-
-@app.route("/signal-optimization/<intersection_id>")
-@login_required
-def signal_optimization(intersection_id):
-    """Display signal optimization dashboard for intersection"""
-    intersection = get_intersection(intersection_id)
-    if not intersection:
-        flash("Intersection not found.", "error")
-        return redirect(url_for("intersections"))
-    
-    return render_template("signal_optimization.html", intersection=intersection)
-
-
-# ============= END AI/ML TRAFFIC OPTIMIZATION ROUTES =============
-
-
-
+@app.errorhandler(404)
 def not_found(e):
     return render_template("index.html"), 404
 
