@@ -289,6 +289,58 @@ class SignalOptimizer:
             'congestion_level': self._classify_congestion(current_congestion_score),
             'timestamp': datetime.now().isoformat()
         }
+
+    def build_phase_decision(self, intersection_data):
+        """
+        Build a controller-friendly decision from the optimized timing plan.
+
+        Returns:
+            dict with the lane that should receive green next and the lanes that
+            should remain stopped for the current phase.
+        """
+        optimization = self.optimize_signal(intersection_data)
+        green_times = optimization.get('green_times', {})
+        if not green_times:
+            return {
+                'go_direction': None,
+                'stop_directions': [],
+                'reason': 'No traffic data available.',
+                'green_time': 0,
+                'timestamp': datetime.now().isoformat()
+            }
+
+        ranked = sorted(
+            green_times.items(),
+            key=lambda item: (
+                item[1],
+                intersection_data.get(item[0], {}).get('vehicles', 0),
+                intersection_data.get(item[0], {}).get('priority', 0)
+            ),
+            reverse=True
+        )
+        go_direction, green_time = ranked[0]
+        stop_directions = [direction for direction in green_times if direction != go_direction]
+        vehicle_count = intersection_data.get(go_direction, {}).get('vehicles', 0)
+
+        return {
+            'go_direction': go_direction,
+            'green_time': green_time,
+            'stop_directions': stop_directions,
+            'reason': (
+                f"{go_direction} has the strongest demand with {vehicle_count} detected vehicles "
+                f"and receives the highest optimized green time."
+            ),
+            'ranked_directions': [
+                {
+                    'direction': direction,
+                    'green_time': timing,
+                    'vehicles': intersection_data.get(direction, {}).get('vehicles', 0),
+                    'priority': intersection_data.get(direction, {}).get('priority', 0),
+                }
+                for direction, timing in ranked
+            ],
+            'timestamp': datetime.now().isoformat()
+        }
     
     def _classify_congestion(self, score):
         """Classify congestion level"""

@@ -1,0 +1,366 @@
+{% extends "base.html" %}
+{% block title %}{{ intersection.name }} Smart Signal - Traffix{% endblock %}
+{% block extra_css %}
+<style>
+  .smart-page{min-height:100vh;background:radial-gradient(circle at top left,rgba(56,189,248,.12),transparent 24%),linear-gradient(180deg,#06101a 0%,#02050a 100%);padding:24px 0 48px}
+  .smart-shell{width:min(1320px,calc(100% - 32px));margin:0 auto;display:grid;gap:18px}
+  .card,.hero,.signal-board,.panel,.chart-card,.lane-card,.upload-card,.insight-card{border:1px solid rgba(148,163,184,.16);background:linear-gradient(180deg,rgba(15,23,42,.86),rgba(7,12,20,.94));border-radius:24px;box-shadow:0 24px 80px rgba(0,0,0,.28)}
+  .hero,.signal-board,.panel,.chart-card{padding:24px}
+  .eyebrow,.mini-label{text-transform:uppercase;letter-spacing:.08em;font-size:.76rem;color:#7dd3fc;font-weight:700}
+  .hero-top,.board-grid,.lane-grid,.upload-grid,.chart-grid,.toolbar,.analytics-toolbar,.stats-grid,.insights-grid{display:grid;gap:16px}
+  .hero-top{grid-template-columns:1.15fr .85fr}
+  .hero-copy h1{font-size:clamp(2.2rem,4vw,4rem);line-height:.95;margin:10px 0 12px;letter-spacing:-.05em}
+  .hero-actions{display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap}
+  .panel-copy,.muted,.metric{color:var(--text-secondary)}
+  .stats-grid{grid-template-columns:repeat(4,minmax(0,1fr))}
+  .stat-card{padding:16px;border-radius:18px;background:rgba(15,23,42,.58);border:1px solid rgba(148,163,184,.12)}
+  .stat-value{font-size:1.95rem;font-weight:800;margin-top:6px}
+  .board-grid{grid-template-columns:320px 1fr}
+  .signal-visual{display:grid;justify-items:center;align-content:center;gap:18px}
+  .signal-head{width:150px;padding:18px 16px;border-radius:32px;background:linear-gradient(180deg,#111827,#030712);border:1px solid rgba(148,163,184,.18);display:grid;gap:12px}
+  .signal-lamp{width:88px;height:88px;border-radius:50%;margin:0 auto;opacity:.25;transition:opacity .18s ease,transform .18s ease;transform:scale(.96)}
+  .signal-lamp.red{background:radial-gradient(circle at 35% 30%,#fca5a5,#991b1b 68%)}
+  .signal-lamp.yellow{background:radial-gradient(circle at 35% 30%,#fde68a,#a16207 68%)}
+  .signal-lamp.green{background:radial-gradient(circle at 35% 30%,#86efac,#166534 68%)}
+  .signal-lamp.active{opacity:1;transform:scale(1)}
+  .signal-post{width:18px;height:120px;border-radius:999px;background:linear-gradient(180deg,#334155,#0f172a)}
+  .signal-phase{text-align:center}
+  .signal-phase strong{display:block;font-size:1.35rem;margin-top:6px}
+  .signal-details{display:grid;gap:14px}
+  .decision-summary{padding:18px;border-radius:20px;background:rgba(8,47,73,.28);border:1px solid rgba(56,189,248,.16)}
+  .decision-summary h3{font-size:2rem;margin:6px 0 8px}
+  .decision-meta{display:flex;gap:10px;flex-wrap:wrap}
+  .chip,.pill,.density-badge{display:inline-flex;border-radius:999px;font-weight:700}
+  .chip{padding:7px 12px;font-size:.82rem}
+  .chip.green,.pill.go{background:rgba(34,197,94,.14);color:#86efac}
+  .chip.red,.pill.stop{background:rgba(248,113,113,.14);color:#fca5a5}
+  .chip.blue,.pill.wait{background:rgba(56,189,248,.14);color:#7dd3fc}
+  .lane-grid,.upload-grid,.chart-grid,.insights-grid{grid-template-columns:repeat(auto-fit,minmax(240px,1fr))}
+  .lane-card,.upload-card,.insight-card{padding:18px}
+  .lane-card-head{display:flex;justify-content:space-between;gap:12px;align-items:start}
+  .lane-card.go{box-shadow:inset 0 -3px 0 rgba(34,197,94,.8)}
+  .lane-card.stop{box-shadow:inset 0 -3px 0 rgba(248,113,113,.8)}
+  .density-badge{margin-top:12px;padding:6px 12px;font-size:.76rem;text-transform:uppercase;letter-spacing:.05em}
+  .density-low{background:rgba(34,197,94,.14);color:#86efac}.density-medium{background:rgba(250,204,21,.14);color:#fde68a}.density-high{background:rgba(249,115,22,.14);color:#fdba74}.density-critical{background:rgba(239,68,68,.16);color:#fca5a5}
+  .dropzone{margin-top:14px;border:1px dashed rgba(56,189,248,.42);border-radius:16px;padding:18px;background:rgba(8,47,73,.25);text-align:center;cursor:pointer}
+  .dropzone.dragover,.dropzone:hover{border-color:rgba(34,197,94,.58);background:rgba(20,83,45,.22)}
+  .selected-file{margin-top:8px;min-height:20px;color:#86efac;font-size:.9rem}
+  .toolbar{grid-template-columns:1fr auto;align-items:center}
+  .analytics-toolbar{grid-template-columns:auto auto 1fr;align-items:center}
+  .chart-card{min-height:280px}
+  .chart-card svg{width:100%;height:180px;display:block;margin-top:12px}
+  .status-message{display:none;padding:14px 16px;border-radius:16px;border:1px solid rgba(148,163,184,.14)}
+  .status-message.info{display:block;background:rgba(8,47,73,.32);color:#bae6fd}
+  .status-message.error{display:block;background:rgba(127,29,29,.32);color:#fecaca}
+  select,input[type="datetime-local"]{min-height:44px;padding:10px 12px;border-radius:12px;border:1px solid rgba(148,163,184,.16);background:rgba(15,23,42,.7);color:var(--text-primary)}
+  @media (max-width:1040px){.hero-top,.board-grid,.toolbar,.analytics-toolbar,.stats-grid{grid-template-columns:1fr}.hero-actions{justify-content:flex-start}}
+</style>
+{% endblock %}
+{% block body %}
+<main class="smart-page">
+  <div class="smart-shell">
+    <section class="hero">
+      <div class="hero-top">
+        <div class="hero-copy">
+          <div class="eyebrow">AI Smart Signal Control</div>
+          <h1>{{ intersection.name }}</h1>
+          <p class="panel-copy">Traffix now combines YOLO lane detection, adaptive timing, a live traffic signal visual, and time-based intersection analytics so you can explain both the current decision and the broader traffic pattern over time.</p>
+        </div>
+        <div class="hero-actions">
+          <a href="{{ url_for('intersection_detail', intersection_id=intersection.id) }}" class="btn btn-secondary">Back to detail</a>
+          <a href="{{ url_for('intersection_monitor', intersection_id=intersection.id) }}" class="btn btn-ghost">Open CCTV view</a>
+        </div>
+      </div>
+      <div class="stats-grid">
+        <div class="stat-card"><div class="mini-label">Intersection</div><div class="stat-value">{{ intersection.id }}</div></div>
+        <div class="stat-card"><div class="mini-label">Roads</div><div class="stat-value">{{ intersection.num_roads }}</div></div>
+        <div class="stat-card"><div class="mini-label">Configured Lanes</div><div class="stat-value">{{ intersection.lanes|length }}</div></div>
+        <div class="stat-card"><div class="mini-label">Analytics Source</div><div class="stat-value" id="analytics-source">{{ analytics.source }}</div></div>
+      </div>
+    </section>
+
+    <section class="signal-board">
+      <div class="board-grid">
+        <div class="signal-visual">
+          <div class="signal-head">
+            <div class="signal-lamp red" data-signal-lamp="red"></div>
+            <div class="signal-lamp yellow" data-signal-lamp="yellow"></div>
+            <div class="signal-lamp green active" data-signal-lamp="green"></div>
+          </div>
+          <div class="signal-post"></div>
+          <div class="signal-phase">
+            <div class="mini-label">Current phase</div>
+            <strong id="signal-phase-label">Awaiting analysis</strong>
+            <div class="muted" id="signal-phase-copy">Upload lane images to compute the next green signal.</div>
+          </div>
+        </div>
+        <div class="signal-details">
+          <div class="decision-summary" id="decision-summary">
+            <div class="mini-label">Live controller decision</div>
+            <h3>Signal standing by</h3>
+            <p class="panel-copy">The smart controller will assign green to the busiest safe direction and hold other approaches at stop.</p>
+            <div class="decision-meta"><span class="chip blue">Waiting for live analysis</span></div>
+          </div>
+          <div class="lane-grid" id="signal-lanes">
+            {% for lane in intersection.lanes %}
+            <article class="lane-card">
+              <div class="lane-card-head"><div><div class="mini-label">{{ lane.direction|title }}</div><h3>{{ lane.name }}</h3></div><span class="pill wait">Waiting</span></div>
+              <div class="metric"><strong>Current signal:</strong> No live decision yet</div>
+              <div class="metric"><strong>Expected action:</strong> Upload data to score this lane</div>
+            </article>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>Lane Snapshot Analysis</h2>
+      <p class="panel-copy">Upload a recent image for one or more lanes. Traffix will detect vehicles, decide which signal should turn green, and add that sample to the historical record for later date/time analysis.</p>
+      <div class="upload-grid">
+        {% for lane in intersection.lanes %}
+        <article class="upload-card">
+          <div class="mini-label">{{ lane.direction|title }} approach</div>
+          <h3>{{ lane.name }}</h3>
+          <div class="muted">{% if lane.camera.status %}Camera online{% else %}Camera disabled, but image upload still works{% endif %}</div>
+          <label class="dropzone" data-dropzone="{{ lane.id }}">
+            <input type="file" accept="image/*" data-lane-file="{{ lane.id }}" hidden>
+            <strong>Upload lane image</strong>
+            <div class="muted">JPG, PNG, or WebP</div>
+            <div class="selected-file" data-selected-file="{{ lane.id }}"></div>
+          </label>
+        </article>
+        {% endfor %}
+      </div>
+      <div class="toolbar" style="margin-top:18px">
+        <div>
+          <div class="mini-label" style="margin-bottom:6px">Analysis date and time</div>
+          <input type="datetime-local" id="analysis-timestamp">
+          <div class="muted" style="margin-top:6px">Set the exact photo timestamp you want saved with this analysis.</div>
+        </div>
+        <button type="button" class="btn btn-primary" id="analyze-btn">Analyze traffic and update signal</button>
+      </div>
+      <div class="status-message" id="status-message"></div>
+    </section>
+
+    <section class="panel">
+      <div class="analytics-toolbar">
+        <div><div class="mini-label">Historical analytics</div><h2 style="margin-top:6px">Traffic by Date and Time</h2></div>
+        <select id="history-range"><option value="3">Last 3 days</option><option value="7" selected>Last 7 days</option><option value="14">Last 14 days</option><option value="30">Last 30 days</option></select>
+        <div class="muted" id="analytics-copy">{% if analytics.sample_count %}Showing {{ analytics.source }} for this intersection.{% else %}No history yet for this intersection.{% endif %}</div>
+      </div>
+      <div class="lane-grid" id="overview-cards" style="margin-top:18px"></div>
+      <div class="chart-grid" style="margin-top:16px">
+        <article class="chart-card"><div class="mini-label">Hourly demand</div><h3>Which time of day needs green priority?</h3><div class="muted">Average total vehicles seen during each hourly window.</div><div id="hourly-chart"></div></article>
+        <article class="chart-card"><div class="mini-label">Daily pressure</div><h3>Intersection traffic over dates</h3><div class="muted">Average total vehicles per sampled date.</div><div id="daily-chart"></div></article>
+        <article class="chart-card"><div class="mini-label">Lane comparison</div><h3>Overall lane load</h3><div class="muted">Average vehicles for each approach across the selected period.</div><div id="lane-chart"></div></article>
+      </div>
+      <div class="insights-grid" id="insights-grid" style="margin-top:16px"></div>
+    </section>
+
+    <section class="panel" id="results-panel" style="display:none">
+      <div class="mini-label">Latest machine vision result</div>
+      <h2 style="margin-top:6px">Current Lane Detection</h2>
+      <p class="panel-copy">This is the most recent YOLO snapshot analysis used to drive the live signal recommendation above.</p>
+      <div class="lane-grid" id="lane-results"></div>
+      <div class="lane-grid" id="recommendations-list" style="margin-top:16px"></div>
+    </section>
+  </div>
+</main>
+{% endblock %}
+{% block extra_js %}
+<script>
+  (function () {
+    const intersection = {{ intersection | tojson }};
+    const initialAnalytics = {{ analytics | tojson }};
+    const selectedFiles = {};
+    const analyzeBtn = document.getElementById("analyze-btn");
+    const analysisTimestampInput = document.getElementById("analysis-timestamp");
+    const historyRange = document.getElementById("history-range");
+    const statusMessage = document.getElementById("status-message");
+    const resultsPanel = document.getElementById("results-panel");
+    const laneResults = document.getElementById("lane-results");
+    const recommendationsList = document.getElementById("recommendations-list");
+    const analyticsSource = document.getElementById("analytics-source");
+    const analyticsCopy = document.getElementById("analytics-copy");
+    const overviewCards = document.getElementById("overview-cards");
+    const insightsGrid = document.getElementById("insights-grid");
+    const decisionSummary = document.getElementById("decision-summary");
+    const signalPhaseLabel = document.getElementById("signal-phase-label");
+    const signalPhaseCopy = document.getElementById("signal-phase-copy");
+    const signalLanes = document.getElementById("signal-lanes");
+
+    function setStatus(message, tone) {
+      statusMessage.textContent = message || "";
+      statusMessage.className = "status-message";
+      if (message) statusMessage.classList.add(tone || "info");
+    }
+
+    function escapeHtml(value) {
+      return String(value ?? "").replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;").replaceAll("'", "&#39;");
+    }
+
+    function defaultAnalysisTimestamp() {
+      const now = new Date();
+      now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+      return now.toISOString().slice(0, 16);
+    }
+
+    function bindUploads() {
+      document.querySelectorAll("[data-dropzone]").forEach((dropzone) => {
+        const laneId = dropzone.getAttribute("data-dropzone");
+        const input = document.querySelector(`[data-lane-file='${laneId}']`);
+        const selectedLabel = document.querySelector(`[data-selected-file='${laneId}']`);
+        dropzone.addEventListener("dragover", (event) => { event.preventDefault(); dropzone.classList.add("dragover"); });
+        dropzone.addEventListener("dragleave", () => dropzone.classList.remove("dragover"));
+        dropzone.addEventListener("drop", (event) => {
+          event.preventDefault();
+          dropzone.classList.remove("dragover");
+          const [file] = Array.from(event.dataTransfer.files || []);
+          if (!file) return;
+          selectedFiles[laneId] = file;
+          selectedLabel.textContent = file.name;
+        });
+        input.addEventListener("change", () => {
+          const [file] = Array.from(input.files || []);
+          if (!file) return;
+          selectedFiles[laneId] = file;
+          selectedLabel.textContent = file.name;
+        });
+      });
+    }
+
+    function renderBarChart(targetId, data, color) {
+      const target = document.getElementById(targetId);
+      if (!target) return;
+      if (!data || !data.length) { target.innerHTML = `<div class="muted" style="margin-top:16px">No history available yet.</div>`; return; }
+      const maxValue = Math.max(...data.map((item) => Number(item.value) || 0), 1);
+      const barWidth = 46, gap = 18, chartHeight = 160, width = Math.max(360, data.length * (barWidth + gap) + 40);
+      const bars = data.map((item, index) => {
+        const value = Number(item.value) || 0;
+        const height = Math.max(6, (value / maxValue) * chartHeight);
+        const x = 20 + index * (barWidth + gap), y = 180 - height;
+        return `<rect x="${x}" y="${y}" width="${barWidth}" height="${height}" rx="12" fill="${color}" opacity=".9"></rect><text x="${x + (barWidth / 2)}" y="${y - 8}" text-anchor="middle" fill="#e2e8f0" font-size="12">${value}</text><text x="${x + (barWidth / 2)}" y="198" text-anchor="middle" fill="#94a3b8" font-size="11">${escapeHtml(item.label)}</text>`;
+      }).join("");
+      target.innerHTML = `<svg viewBox="0 0 ${width} 210" preserveAspectRatio="none"><line x1="14" y1="180" x2="${width - 10}" y2="180" stroke="rgba(148,163,184,.28)" stroke-width="1"></line>${bars}</svg>`;
+    }
+
+    function renderLineChart(targetId, data, color) {
+      const target = document.getElementById(targetId);
+      if (!target) return;
+      if (!data || !data.length) { target.innerHTML = `<div class="muted" style="margin-top:16px">No history available yet.</div>`; return; }
+      const maxValue = Math.max(...data.map((item) => Number(item.value) || 0), 1);
+      const width = Math.max(420, data.length * 62), height = 210, innerHeight = 150, step = data.length === 1 ? 0 : (width - 40) / (data.length - 1);
+      const points = data.map((item, index) => {
+        const value = Number(item.value) || 0;
+        const x = 20 + (index * step), y = 170 - ((value / maxValue) * innerHeight);
+        return { x, y, value, label: item.label };
+      });
+      const polyline = points.map((point) => `${point.x},${point.y}`).join(" ");
+      const markers = points.map((point) => `<circle cx="${point.x}" cy="${point.y}" r="5" fill="${color}"></circle><text x="${point.x}" y="${point.y - 10}" text-anchor="middle" fill="#e2e8f0" font-size="12">${point.value}</text><text x="${point.x}" y="198" text-anchor="middle" fill="#94a3b8" font-size="11">${escapeHtml(point.label)}</text>`).join("");
+      target.innerHTML = `<svg viewBox="0 0 ${width} ${height}" preserveAspectRatio="none"><line x1="16" y1="170" x2="${width - 12}" y2="170" stroke="rgba(148,163,184,.28)" stroke-width="1"></line><polyline fill="none" stroke="${color}" stroke-width="4" points="${polyline}" stroke-linecap="round" stroke-linejoin="round"></polyline>${markers}</svg>`;
+    }
+
+    function applySignalLamp(activeLamp) {
+      ["red", "yellow", "green"].forEach((tone) => {
+        const lamp = document.querySelector(`[data-signal-lamp='${tone}']`);
+        if (lamp) lamp.classList.toggle("active", tone === activeLamp);
+      });
+    }
+
+    function renderSignalDecision(decision, optimization, results) {
+      const goDirection = decision?.go_direction || "Awaiting analysis";
+      const stopDirections = decision?.stop_directions || [];
+      const greenTime = decision?.green_time || 0;
+      applySignalLamp(decision?.go_direction ? "green" : "red");
+      signalPhaseLabel.textContent = decision?.go_direction ? `${goDirection} Green` : "Awaiting analysis";
+      signalPhaseCopy.textContent = decision?.reason || "Upload lane snapshots to generate the next safe phase.";
+
+      const chips = decision?.go_direction
+        ? [`<span class="chip green">${escapeHtml(goDirection)} gets green</span>`, `<span class="chip red">${stopDirections.length} approaches stay stop</span>`, `<span class="chip blue">${greenTime}s green window</span>`]
+        : [`<span class="chip blue">Waiting for live analysis</span>`];
+
+      decisionSummary.innerHTML = `<div class="mini-label">Live controller decision</div><h3>${escapeHtml(goDirection)}</h3><p class="panel-copy">${escapeHtml(decision?.reason || "The controller is standing by until fresh traffic data is uploaded.")}</p><div class="decision-meta">${chips.join("")}</div><div class="metric"><strong>Cycle time:</strong> ${optimization?.cycle_time || 0}s</div><div class="metric"><strong>Stop directions:</strong> ${stopDirections.length ? escapeHtml(stopDirections.join(", ")) : "None yet"}</div>`;
+
+      const laneStates = Object.values(results || {});
+      signalLanes.innerHTML = intersection.lanes.map((lane) => {
+        const result = laneStates.find((item) => String(item.lane_id) === String(lane.id));
+        const direction = result?.direction || (lane.direction || lane.id).replace(/\b\w/g, (m) => m.toUpperCase());
+        const isGo = decision?.go_direction === direction;
+        const stateClass = decision?.go_direction ? (isGo ? "go" : "stop") : "wait";
+        const label = decision?.go_direction ? (isGo ? "Go" : "Stop") : "Waiting";
+        return `<article class="lane-card ${stateClass}"><div class="lane-card-head"><div><div class="mini-label">${escapeHtml(direction)}</div><h3>${escapeHtml(result?.lane_name || lane.name)}</h3></div><span class="pill ${stateClass}">${label}</span></div><div class="metric"><strong>Detected vehicles:</strong> ${result?.vehicle_count ?? "-"}</div><div class="metric"><strong>Suggested green:</strong> ${(optimization?.green_times || {})[direction] ?? 0}s</div><div class="metric"><strong>Controller action:</strong> ${isGo ? "Release this lane" : (decision?.go_direction ? "Hold on red" : "No phase yet")}</div></article>`;
+      }).join("");
+    }
+
+    function renderLaneResults(results, optimization, decision) {
+      laneResults.innerHTML = Object.values(results || {}).map((result) => {
+        const direction = result.direction || "";
+        const greenTime = (optimization?.green_times || {})[direction] || 0;
+        const densityClass = `density-${String(result.density_level || "low").toLowerCase()}`;
+        const stateClass = decision?.go_direction === direction ? "go" : "stop";
+        const stateText = decision?.go_direction === direction ? "Green next" : "Hold";
+        return `<article class="lane-card ${stateClass}"><div class="lane-card-head"><div><div class="mini-label">${escapeHtml(direction)}</div><h3>${escapeHtml(result.lane_name)}</h3></div><span class="pill ${stateClass}">${stateText}</span></div><span class="density-badge ${densityClass}">${escapeHtml(result.density_level)}</span><div class="metric"><strong>Vehicles detected:</strong> ${result.vehicle_count}</div><div class="metric"><strong>Suggested green time:</strong> ${greenTime}s</div><div class="metric"><strong>Objects tracked:</strong> ${(result.detections || []).length}</div></article>`;
+      }).join("");
+    }
+
+    function renderRecommendations(payload) {
+      const items = ((payload.recommendations || {}).recommendations || []);
+      recommendationsList.innerHTML = items.map((item) => `<article class="insight-card"><div class="mini-label">${escapeHtml(item.severity || "info")} recommendation</div><h3 style="margin-top:8px">${escapeHtml(item.direction)}</h3><div class="metric">${escapeHtml(item.message)}</div><div class="metric"><strong>Action:</strong> ${escapeHtml(item.action)}</div></article>`).join("");
+    }
+
+    function renderOverview(analytics) {
+      analyticsSource.textContent = analytics.source || "-";
+      analyticsCopy.textContent = analytics.sample_count ? `Showing ${analytics.source || "history"} for this intersection.` : "No history yet for this intersection.";
+      overviewCards.innerHTML = `<article class="lane-card"><div class="mini-label">Average load</div><h3>${analytics.overall_average || 0} vehicles</h3><div class="metric">${analytics.sample_count ? "Average vehicles across each tracked sample window." : "This will appear after your first real upload and analysis."}</div></article><article class="lane-card"><div class="mini-label">Peak hour</div><h3>${escapeHtml((analytics.best_hour || {}).label || "-")}</h3><div class="metric"><strong>Demand:</strong> ${((analytics.best_hour || {}).value ?? 0)} vehicles</div></article><article class="lane-card"><div class="mini-label">Busiest lane</div><h3>${escapeHtml((analytics.busiest_lane || {}).lane_name || "-")}</h3><div class="metric"><strong>Average:</strong> ${((analytics.busiest_lane || {}).average_vehicles ?? 0)} vehicles</div></article><article class="lane-card"><div class="mini-label">Peak sample</div><h3>${escapeHtml((analytics.peak_record || {}).direction || "-")}</h3><div class="metric"><strong>Vehicles:</strong> ${((analytics.peak_record || {}).vehicles ?? 0)}</div><div class="metric">${escapeHtml((analytics.peak_record || {}).timestamp || "-")}</div></article>`;
+      renderBarChart("hourly-chart", analytics.hourly_trend || [], "#38bdf8");
+      renderLineChart("daily-chart", analytics.daily_totals || [], "#22c55e");
+      renderBarChart("lane-chart", (analytics.lane_averages || []).map((item) => ({ label: item.direction, value: item.average_vehicles })), "#f97316");
+      insightsGrid.innerHTML = (analytics.insights || []).map((insight) => `<article class="insight-card"><div class="mini-label">Traffic insight</div><h3 style="margin-top:8px">Intersection analysis</h3><div class="metric">${escapeHtml(insight)}</div></article>`).join("");
+    }
+
+    async function refreshAnalytics() {
+      const response = await fetch(`/api/intersection/${intersection.id}/smart-signal/history?days=${encodeURIComponent(historyRange.value || "7")}`);
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload.error || "Could not load historical analytics.");
+      renderOverview(payload.analytics || {});
+    }
+
+    async function analyze() {
+      if (!Object.keys(selectedFiles).length) {
+        setStatus("Upload at least one lane image before running the AI analysis.", "error");
+        return;
+      }
+      analyzeBtn.disabled = true;
+      setStatus("Running YOLO traffic detection, signal optimization, and history update...", "info");
+      const formData = new FormData();
+      formData.append("analysis_timestamp", analysisTimestampInput?.value || defaultAnalysisTimestamp());
+      Object.entries(selectedFiles).forEach(([laneId, file]) => formData.append(`images[${laneId}]`, file));
+      try {
+        const response = await fetch(`/api/intersection/${intersection.id}/smart-signal/analyze`, { method: "POST", body: formData });
+        const payload = await response.json();
+        if (!response.ok) throw new Error(payload.error || "Analysis failed.");
+        renderSignalDecision(payload.decision || {}, payload.optimization || {}, payload.results || {});
+        renderLaneResults(payload.results || {}, payload.optimization || {}, payload.decision || {});
+        renderRecommendations(payload);
+        if (payload.analytics) renderOverview(payload.analytics); else await refreshAnalytics();
+        resultsPanel.style.display = "block";
+        setStatus(`Signal updated for ${payload.intersection.name}. Historical analytics were refreshed with the new sample.`, "info");
+      } catch (error) {
+        setStatus(error.message || "Could not analyze traffic.", "error");
+      } finally {
+        analyzeBtn.disabled = false;
+      }
+    }
+
+    bindUploads();
+    if (analysisTimestampInput && !analysisTimestampInput.value) {
+      analysisTimestampInput.value = defaultAnalysisTimestamp();
+    }
+    renderOverview(initialAnalytics || {});
+    renderSignalDecision({}, {}, {});
+    analyzeBtn.addEventListener("click", analyze);
+    historyRange.addEventListener("change", () => refreshAnalytics().catch((error) => setStatus(error.message || "Could not refresh history.", "error")));
+  })();
+</script>
+{% endblock %}

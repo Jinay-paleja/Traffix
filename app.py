@@ -15,14 +15,22 @@ Python web application (Flask).
 """
 import os
 import json
+import math
+import random
 from pathlib import Path
+from datetime import datetime, timedelta
 
+import cv2
+import numpy as np
 from flask import Flask, render_template, request, redirect, url_for, flash, session
 from werkzeug.security import generate_password_hash, check_password_hash
+from werkzeug.utils import secure_filename
 
 # Firebase Admin SDK
 import firebase_admin
 from firebase_admin import credentials
+from signal_optimizer import get_signal_optimizer
+from traffic_detector import get_traffic_detector
 
 # Initialize Firebase Admin with service account
 cred = credentials.Certificate("traffix-40acf-firebase-adminsdk-fbsvc-b4a43d8111.json")
@@ -55,6 +63,8 @@ app.secret_key = os.environ.get("SECRET_KEY", "traffix-dev-secret-change-in-prod
 
 USERS_FILE = BASE_DIR / "data" / "users.json"
 INTERSECTIONS_FILE = BASE_DIR / "data" / "intersections.json"
+TRAFFIC_HISTORY_FILE = BASE_DIR / "data" / "traffic_history.json"
+ALLOWED_IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp"}
 
 
 def _normalize_intersections(intersections):
@@ -164,6 +174,271 @@ def save_intersections(intersections):
         json.dump({"intersections": intersections}, f, indent=2)
 
 
+def load_traffic_history():
+    if not TRAFFIC_HISTORY_FILE.exists():
+        return []
+    try:
+        with open(TRAFFIC_HISTORY_FILE, "r", encoding="utf-8") as f:
+            data = f.read().strip()
+            if not data:
+                return []
+            payload = json.loads(data)
+            history = payload.get("history", [])
+            return history if isinstance(history, list) else []
+    except (json.JSONDecodeError, OSError):
+        return []
+
+
+def save_traffic_history(history):
+    TRAFFIC_HISTORY_FILE.parent.mkdir(parents=True, exist_ok=True)
+    with open(TRAFFIC_HISTORY_FILE, "w", encoding="utf-8") as f:
+        json.dump({"history": history[-500:]}, f, indent=2)
+
+
+def _peak_multiplier(hour):
+    if 7 <= hour <= 10:
+        return 1.8
+    if 17 <= hour <= 20:
+        return 2.1
+    if 12 <= hour <= 14:
+        return 1.35
+    if 22 <= hour or hour <= 5:
+        return 0.55
+    return 1.0
+
+
+def _direction_weight(direction):
+    direction = (direction or "").lower()
+    mapping = {
+        "north": 1.18,
+        "south": 1.0,
+        "east": 1.28,
+        "west": 0.92,
+        "northeast": 1.12,
+        "northwest": 0.95,
+        "southeast": 1.22,
+        "southwest": 0.88,
+    }
+    return mapping.get(direction, 1.0)
+
+
+def _density_level_from_count(vehicle_count):
+    if vehicle_count < 5:
+        return "Low"
+    if vehicle_count < 15:
+        return "Medium"
+    if vehicle_count < 30:
+        return "High"
+    return "Critical"
+
+
+def _generate_modeled_history(intersection, days=7):
+    lanes = intersection.get("lanes", [])
+    now = datetime.now()
+    history = []
+
+    for day_offset in range(days - 1, -1, -1):
+        day = (now - timedelta(days=day_offset)).replace(minute=0, second=0, microsecond=0)
+        for hour in [6, 9, 12, 15, 18, 21]:
+            sample_time = day.replace(hour=hour)
+            lane_results = {}
+            total = 0
+            for idx, lane in enumerate(lanes):
+                direction = lane.get("direction", f"lane-{idx+1}")
+                base = 6 + (idx * 2)
+                weekday_boost = 1.18 if sample_time.weekday() < 5 else 0.88
+                wave = 1 + (math.sin(((sample_time.timetuple().tm_yday + idx) / 8.0)) * 0.14)
+                seeded_noise = random.Random(f"{intersection.get('id')}:{direction}:{sample_time.isoformat()}").uniform(0.86, 1.16)
+                vehicles = int(round(base * _direction_weight(direction) * _peak_multiplier(hour) * weekday_boost * wave * seeded_noise))
+                vehicles = max(0, vehicles)
+                lane_results[lane.get("id", direction)] = {
+                    "lane_id": lane.get("id", direction),
+                    "lane_name": lane.get("name", direction.title()),
+                    "direction": direction.title(),
+                    "vehicle_count": vehicles,
+                    "density_level": _density_level_from_count(vehicles),
+                    "timestamp": sample_time.isoformat(),
+                    "detections": [],
+                }
+                total += vehicles
+
+            history.append({
+                "intersection_id": intersection.get("id"),
+                "timestamp": sample_time.isoformat(),
+                "source": "modeled",
+                "results": lane_results,
+                "summary": {
+                    "total_vehicles": total,
+                    "lanes_analyzed": len(lane_results),
+                },
+            })
+
+    return history
+
+
+def _normalize_analysis_timestamp(raw_value):
+    if not raw_value:
+        return datetime.now().replace(microsecond=0).isoformat()
+    try:
+        return datetime.fromisoformat(raw_value).replace(microsecond=0).isoformat()
+    except ValueError:
+        return datetime.now().replace(microsecond=0).isoformat()
+
+
+def _append_traffic_history(intersection, payload):
+    history = load_traffic_history()
+    history.append({
+        "intersection_id": intersection.get("id"),
+        "timestamp": payload.get("analysis_timestamp") or payload.get("decision", {}).get("timestamp") or datetime.now().isoformat(),
+        "source": "live",
+        "results": payload.get("results", {}),
+        "summary": payload.get("summary", {}),
+        "decision": payload.get("decision", {}),
+    })
+    save_traffic_history(history)
+
+
+def _build_history_analytics(intersection, days=7):
+    intersection_id = intersection.get("id")
+    cutoff = datetime.now() - timedelta(days=days)
+    history = [
+        item for item in load_traffic_history()
+        if item.get("intersection_id") == intersection_id
+    ]
+
+    parsed_history = []
+    for item in history:
+        try:
+            timestamp = datetime.fromisoformat(item.get("timestamp"))
+        except (TypeError, ValueError):
+            continue
+        if timestamp >= cutoff:
+            parsed_history.append((timestamp, item))
+
+    if not parsed_history:
+        return {
+            "source": "No history yet",
+            "days": days,
+            "sample_count": 0,
+            "overall_average": 0,
+            "best_hour": {"label": "-", "value": 0},
+            "busiest_lane": {"lane_name": "-", "direction": "-", "average_vehicles": 0},
+            "peak_record": {"vehicles": 0, "label": "-", "direction": "-", "timestamp": "-"},
+            "hourly_trend": [],
+            "daily_totals": [],
+            "lane_averages": [],
+            "timeline": [],
+            "insights": [
+                "No history yet. Upload lane images and run an analysis to start building real traffic trends for this intersection."
+            ],
+        }
+
+    source = "live uploads"
+
+    parsed_history.sort(key=lambda item: item[0])
+
+    lane_map = {
+        lane.get("id"): {
+            "direction": lane.get("direction", lane.get("id", "")).title(),
+            "name": lane.get("name", lane.get("direction", "Lane").title()),
+        }
+        for lane in intersection.get("lanes", [])
+    }
+    lane_totals = {lane_id: 0 for lane_id in lane_map}
+    lane_samples = {lane_id: 0 for lane_id in lane_map}
+    hour_buckets = {}
+    day_buckets = {}
+    timeline = []
+
+    peak_record = {"vehicles": -1, "label": "-", "direction": "-", "timestamp": "-"}
+
+    for timestamp, item in parsed_history:
+        results = item.get("results", {}) or {}
+        total = 0
+        busiest_lane = None
+        busiest_count = -1
+        for lane_id, result in results.items():
+            vehicles = int(result.get("vehicle_count", 0))
+            lane_totals.setdefault(lane_id, 0)
+            lane_samples.setdefault(lane_id, 0)
+            lane_totals[lane_id] += vehicles
+            lane_samples[lane_id] += 1
+            total += vehicles
+            if vehicles > busiest_count:
+                busiest_count = vehicles
+                busiest_lane = result
+            if vehicles > peak_record["vehicles"]:
+                peak_record = {
+                    "vehicles": vehicles,
+                    "label": result.get("lane_name", lane_id),
+                    "direction": result.get("direction", lane_id),
+                    "timestamp": timestamp.strftime("%d %b %Y, %I:%M %p"),
+                }
+
+        hour_key = timestamp.strftime("%H:00")
+        hour_stats = hour_buckets.setdefault(hour_key, {"total": 0, "count": 0})
+        hour_stats["total"] += total
+        hour_stats["count"] += 1
+
+        day_key = timestamp.strftime("%d %b")
+        day_stats = day_buckets.setdefault(day_key, {"total": 0, "count": 0})
+        day_stats["total"] += total
+        day_stats["count"] += 1
+
+        timeline.append({
+            "label": timestamp.strftime("%d %b %H:%M"),
+            "total": total,
+            "busiest_lane": (busiest_lane or {}).get("direction", "-"),
+        })
+
+    lane_averages = []
+    for lane_id, total in lane_totals.items():
+        sample_count = max(lane_samples.get(lane_id, 0), 1)
+        lane_info = lane_map.get(lane_id, {"direction": lane_id.title(), "name": lane_id})
+        lane_averages.append({
+            "lane_id": lane_id,
+            "lane_name": lane_info["name"],
+            "direction": lane_info["direction"],
+            "average_vehicles": round(total / sample_count, 1),
+        })
+    lane_averages.sort(key=lambda item: item["average_vehicles"], reverse=True)
+
+    hourly_trend = [
+        {"label": hour, "value": round(stats["total"] / max(stats["count"], 1), 1)}
+        for hour, stats in sorted(hour_buckets.items())
+    ]
+    daily_totals = [
+        {"label": day, "value": round(stats["total"] / max(stats["count"], 1), 1)}
+        for day, stats in day_buckets.items()
+    ]
+
+    overall_average = round(
+        sum(item["total"] for item in timeline) / max(len(timeline), 1),
+        1
+    ) if timeline else 0
+    best_hour = max(hourly_trend, key=lambda item: item["value"], default={"label": "-", "value": 0})
+    busiest_lane = lane_averages[0] if lane_averages else {"lane_name": "-", "direction": "-", "average_vehicles": 0}
+
+    return {
+        "source": source,
+        "days": days,
+        "sample_count": len(timeline),
+        "overall_average": overall_average,
+        "best_hour": best_hour,
+        "busiest_lane": busiest_lane,
+        "peak_record": peak_record,
+        "hourly_trend": hourly_trend,
+        "daily_totals": daily_totals,
+        "lane_averages": lane_averages,
+        "timeline": timeline[-18:],
+        "insights": [
+            f"Peak traffic pressure usually appears around {best_hour['label']} based on the current {source}.",
+            f"{busiest_lane['lane_name']} is the heaviest approach on average at {busiest_lane['average_vehicles']} vehicles per sample.",
+            f"The intersection-wide average is {overall_average} vehicles across the tracked sampling windows.",
+        ]
+    }
+
+
 # Migrate/normalize stored intersection data on startup (safe no-op if already clean).
 # This prevents duplicate lane IDs/camera IDs from breaking detail pages and toggles.
 try:
@@ -179,6 +454,106 @@ def get_intersection(intersection_id):
         if intersection["id"] == intersection_id:
             return intersection
     return None
+
+
+def _allowed_image_file(filename):
+    return Path(filename or "").suffix.lower() in ALLOWED_IMAGE_EXTENSIONS
+
+
+def _decode_uploaded_image(file_storage):
+    filename = secure_filename(file_storage.filename or "")
+    if not filename or not _allowed_image_file(filename):
+        return None, "Please upload a JPG, PNG, or WebP image."
+
+    raw_bytes = file_storage.read()
+    if not raw_bytes:
+        return None, "Uploaded image was empty."
+
+    np_buffer = np.frombuffer(raw_bytes, dtype=np.uint8)
+    image = cv2.imdecode(np_buffer, cv2.IMREAD_COLOR)
+    if image is None:
+        return None, "Could not read the uploaded image."
+    return image, None
+
+
+def _build_lane_analysis(intersection, uploaded_files):
+    detector = get_traffic_detector()
+    if detector is None:
+        return None, "YOLO model is not available. Install the dependencies and keep yolov8n.pt in the project root."
+    optimizer = get_signal_optimizer()
+
+    lane_lookup = {lane["id"]: lane for lane in intersection.get("lanes", [])}
+    traffic_data = {}
+    lane_results = {}
+    total_vehicles = 0
+
+    for lane_id, file_storage in uploaded_files.items():
+        lane = lane_lookup.get(lane_id)
+        if not lane:
+            continue
+
+        image, error = _decode_uploaded_image(file_storage)
+        if error:
+            return None, f"{lane.get('name', lane_id)}: {error}"
+
+        result = detector.detect_vehicles(image)
+        if "error" in result:
+            return None, f"{lane.get('name', lane_id)}: {result['error']}"
+
+        direction = lane.get("direction", lane_id).title()
+        vehicles = int(result.get("vehicle_count", 0))
+        priority = optimizer._get_priority(vehicles)
+
+        lane_results[lane_id] = {
+            "lane_id": lane_id,
+            "lane_name": lane.get("name", direction),
+            "direction": direction,
+            "vehicle_count": vehicles,
+            "density_level": result.get("density_level", "Low"),
+            "timestamp": result.get("timestamp"),
+            "detections": result.get("detections", []),
+        }
+        traffic_data[direction] = {"vehicles": vehicles, "priority": priority}
+        total_vehicles += vehicles
+
+    if not lane_results:
+        return None, "Upload at least one lane image to run analysis."
+
+    optimization = optimizer.adaptive_timing(
+        {direction: data["vehicles"] for direction, data in traffic_data.items()}
+    )
+    schedule = optimizer.get_signal_schedule(traffic_data)
+    congestion_score = min(100, int((total_vehicles / max(len(traffic_data), 1)) * 4))
+    recommendations = optimizer.get_recommendations(traffic_data, congestion_score)
+    decision = optimizer.build_phase_decision(traffic_data)
+
+    ranked_lanes = sorted(
+        lane_results.values(),
+        key=lambda item: (item["vehicle_count"], item["density_level"]),
+        reverse=True,
+    )
+
+    summary = {
+        "total_vehicles": total_vehicles,
+        "lanes_analyzed": len(lane_results),
+        "highest_congestion_lane": ranked_lanes[0]["lane_name"],
+        "highest_congestion_density": ranked_lanes[0]["density_level"],
+    }
+
+    return {
+        "intersection": {
+            "id": intersection["id"],
+            "name": intersection["name"],
+            "location": intersection.get("location", "Unknown location"),
+        },
+        "results": lane_results,
+        "traffic_data": traffic_data,
+        "summary": summary,
+        "optimization": optimization,
+        "schedule": schedule,
+        "recommendations": recommendations,
+        "decision": decision,
+    }, None
 
 
 def toggle_camera(intersection_id, lane_id):
@@ -575,6 +950,126 @@ def intersection_monitor(intersection_id):
         flash("Intersection not found.", "error")
         return redirect(url_for("intersections"))
     return render_template("intersection_monitor.html", intersection=intersection)
+
+
+@app.route("/intersection/<intersection_id>/smart-signal")
+@login_required
+def smart_signal(intersection_id):
+    intersection = get_intersection(intersection_id)
+    if not intersection:
+        flash("Intersection not found.", "error")
+        return redirect(url_for("intersections"))
+    analytics = _build_history_analytics(intersection, days=7)
+    return render_template("smart_signal.html", intersection=intersection, analytics=analytics)
+
+
+@app.route("/api/intersection/<intersection_id>/smart-signal/analyze", methods=["POST"])
+@login_required
+def analyze_smart_signal(intersection_id):
+    intersection = get_intersection(intersection_id)
+    if not intersection:
+        return {"error": "Intersection not found."}, 404
+
+    uploaded_files = {}
+    for key in request.files:
+        if not key.startswith("images[") or not key.endswith("]"):
+            continue
+        lane_id = key[7:-1]
+        uploaded_files[lane_id] = request.files[key]
+
+    analysis_timestamp = _normalize_analysis_timestamp(request.form.get("analysis_timestamp"))
+
+    payload, error = _build_lane_analysis(intersection, uploaded_files)
+    if error:
+        return {"error": error}, 400
+    payload["analysis_timestamp"] = analysis_timestamp
+    _append_traffic_history(intersection, payload)
+    payload["analytics"] = _build_history_analytics(intersection, days=7)
+
+    return payload
+
+
+@app.route("/api/analyze-traffic", methods=["POST"])
+@login_required
+def analyze_traffic():
+    intersection_id = request.form.get("intersection_id", "").strip()
+    intersection = get_intersection(intersection_id)
+    if not intersection:
+        return {"error": "Intersection not found."}, 404
+
+    uploaded_files = {}
+    for key in request.files:
+        if not key.startswith("images[") or not key.endswith("]"):
+            continue
+        lane_id = key[7:-1]
+        uploaded_files[lane_id] = request.files[key]
+
+    analysis_timestamp = _normalize_analysis_timestamp(request.form.get("analysis_timestamp"))
+
+    payload, error = _build_lane_analysis(intersection, uploaded_files)
+    if error:
+        return {"error": error}, 400
+    payload["analysis_timestamp"] = analysis_timestamp
+    _append_traffic_history(intersection, payload)
+
+    return payload
+
+
+@app.route("/api/intersection/<intersection_id>/smart-signal/history")
+@login_required
+def smart_signal_history(intersection_id):
+    intersection = get_intersection(intersection_id)
+    if not intersection:
+        return {"error": "Intersection not found."}, 404
+
+    try:
+        days = int(request.args.get("days", "7"))
+    except ValueError:
+        days = 7
+    days = max(1, min(days, 30))
+
+    return {
+        "intersection_id": intersection_id,
+        "analytics": _build_history_analytics(intersection, days=days),
+    }
+
+
+@app.route("/api/optimize-signals", methods=["POST"])
+@login_required
+def optimize_signals():
+    data = request.get_json(silent=True) or {}
+    intersection_id = data.get("intersection_id", "").strip()
+    traffic_data = data.get("traffic_data") or {}
+
+    intersection = get_intersection(intersection_id)
+    if not intersection:
+        return {"error": "Intersection not found."}, 404
+    if not isinstance(traffic_data, dict) or not traffic_data:
+        return {"error": "Traffic data is required."}, 400
+
+    normalized_data = {}
+    total_vehicles = 0
+    for direction, item in traffic_data.items():
+        if not isinstance(item, dict):
+            continue
+        vehicles = max(0, int(item.get("vehicles", 0)))
+        priority = max(1, int(item.get("priority", 1)))
+        normalized_data[direction] = {"vehicles": vehicles, "priority": priority}
+        total_vehicles += vehicles
+
+    if not normalized_data:
+        return {"error": "Traffic data is invalid."}, 400
+
+    optimizer = get_signal_optimizer()
+    congestion_score = min(100, int((total_vehicles / max(len(normalized_data), 1)) * 4))
+
+    return {
+        "intersection_id": intersection_id,
+        "optimization": optimizer.optimize_signal(normalized_data),
+        "schedule": optimizer.get_signal_schedule(normalized_data),
+        "recommendations": optimizer.get_recommendations(normalized_data, congestion_score),
+        "decision": optimizer.build_phase_decision(normalized_data),
+    }
 
 
 @app.route("/camera/toggle/<intersection_id>/<lane_id>", methods=["POST"])
