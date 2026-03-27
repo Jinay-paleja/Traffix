@@ -2,13 +2,13 @@
 // Uses compat SDK for consistency with login page
 
 const firebaseConfig = {
-  apiKey: "AIzaSyC-tnjkrhHygkG60Nq0yOk0Y4W3oFqpHsI",
-  authDomain: "traffix-40acf.firebaseapp.com",
-  projectId: "traffix-40acf",
-  storageBucket: "traffix-40acf.firebasestorage.app",
-  messagingSenderId: "622309834466",
-  appId: "1:622309834466:web:04e38961b2ff6be12828bb",
-  measurementId: "G-27655CG8PK"
+  apiKey: "AIzaSyC9PQmiPza6U5wkffC1qPAQHgMOfAgZgQM",
+  authDomain: "traffix-c507d.firebaseapp.com",
+  projectId: "traffix-c507d",
+  storageBucket: "traffix-c507d.firebasestorage.app",
+  messagingSenderId: "34975360182",
+  appId: "1:34975360182:web:662683d39c1a3750ba7217",
+  measurementId: "G-KWD0WPNJNK"
 };
 
 // Initialize only if not already
