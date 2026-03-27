@@ -89,6 +89,23 @@
         <div class="label">Sensors connected</div>
       </div>
     </div>
+
+    <!-- AI/ML Features Section -->
+    <div style="margin-top: 40px;">
+      <h2 class="section-title" style="margin-bottom: 20px;">🤖 AI-Powered Traffic Management</h2>
+      <div class="dash-quick">
+        <a href="{{ url_for('traffic_detection') }}" class="dash-quick-item" style="text-decoration: none; color: inherit;">
+          <div style="font-size: 2rem; margin-bottom: 10px;">📸</div>
+          <div class="label" style="color: var(--text); font-weight: 500;">Traffic Detection</div>
+          <div style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 8px;">Analyze vehicle density with YOLO AI</div>
+        </a>
+        <a href="{{ url_for('intersections') }}" class="dash-quick-item" style="text-decoration: none; color: inherit;">
+          <div style="font-size: 2rem; margin-bottom: 10px;">🚦</div>
+          <div class="label" style="color: var(--text); font-weight: 500;">Signal Optimization</div>
+          <div style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 8px;">Optimize timing with AI algorithms</div>
+        </a>
+      </div>
+    </div>
   </div>
 </main>
 {% endblock %}
