@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Traffix – Smart Traffic Signal Optimizer | ITS{% endblock %}
+{% block title %}Traffix - Smart Traffic Signal Optimizer | ITS{% endblock %}
 {% block extra_css %}
 <style>
   .site-header {
@@ -32,7 +32,13 @@
     border: 1px solid rgba(251, 191, 36, 0.25);
     animation: fadeUp 0.6s ease-out;
   }
-  .stat-badge::before { content: '⚠'; font-size: 1.1em; }
+  .stat-badge::before {
+    content: "Alert";
+    font-size: 0.82em;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
   .cta-row {
     display: flex;
     flex-wrap: wrap;
@@ -64,7 +70,7 @@
     overflow: hidden;
   }
   .value-card::before {
-    content: '';
+    content: "";
     position: absolute;
     top: 0;
     left: 0;
@@ -89,9 +95,10 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 1.5rem;
+    font-size: 0.95rem;
     margin-bottom: 20px;
-    font-weight: 700;
+    font-weight: 800;
+    letter-spacing: 0.04em;
   }
   .value-card .icon.success {
     background: var(--success-soft);
@@ -108,13 +115,6 @@
     color: var(--text-secondary);
     line-height: 1.65;
   }
-  .footer-cta {
-    padding: 80px 0 100px;
-    text-align: center;
-  }
-  .footer-cta .hero-title { margin-bottom: 16px; }
-  .footer-cta .hero-subtitle { margin-left: auto; margin-right: auto; margin-bottom: 28px; }
-  .footer-cta .cta-row { justify-content: center; }
   .page-footer {
     padding: 36px 0;
     border-top: 1px solid var(--border);
@@ -140,15 +140,15 @@
 <header class="site-header">
   <div class="nav-shell" id="main-nav">
     <nav class="nav container">
-      <a href="{{ url_for('index') }}" class="nav-brand">Traff<span>ix</span></a>
+      <a href="{{ url_for('index') }}" class="nav-brand"><img src="{{ url_for('static', filename='img/traffix-mark.svg') }}" alt="" class="nav-brand-mark" aria-hidden="true"><span class="nav-brand-text">Traff<span>ix</span></span></a>
       <div class="nav-links">
-        <a href="#features" class="btn btn-ghost nav-link"><span class="icon-inline">◫</span>Features</a>
-        <a href="#about" class="btn btn-ghost nav-link"><span class="icon-inline">○</span>About</a>
+        <a href="#features" class="btn btn-ghost nav-link">Features</a>
+        <a href="#about" class="btn btn-ghost nav-link">About</a>
         {% if session.get('user_id') %}
-          <a href="{{ url_for('dashboard') }}" class="btn btn-ghost"><span class="icon-inline">⌘</span>Dashboard</a>
+          <a href="{{ url_for('dashboard') }}" class="btn btn-ghost">Dashboard</a>
           <a href="{{ url_for('logout') }}" class="btn btn-secondary">Log out</a>
         {% else %}
-          <a href="{{ url_for('login') }}" class="btn btn-ghost"><span class="icon-inline">→</span>Log in</a>
+          <a href="{{ url_for('login') }}" class="btn btn-ghost">Log in</a>
           <a href="{{ url_for('register') }}" class="btn btn-primary">Get started</a>
         {% endif %}
       </div>
@@ -164,64 +164,56 @@
         Predict traffic before <span class="text-accent">it happens</span>.
       </h1>
       <p class="hero-subtitle">
-        AI-powered computer vision forecasts lane-level congestion by time slot, then proactively adjusts signals—so intersections adapt before bottlenecks form.
+        AI-powered computer vision forecasts lane-level congestion by time slot, then proactively adjusts signals so intersections adapt before bottlenecks form.
       </p>
       <div class="cta-row">
+        {% if session.get('user_id') %}
+        <a href="{{ url_for('dashboard') }}" class="btn btn-primary">Open dashboard</a>
+        <a href="{{ url_for('intersections') }}" class="btn btn-secondary">Manage intersections</a>
+        {% else %}
         <a href="{{ url_for('register') }}" class="btn btn-primary">Start optimizing</a>
         <a href="{{ url_for('login') }}" class="btn btn-secondary">Sign in</a>
+        {% endif %}
       </div>
     </div>
   </section>
 
-<section class="problem-section" id="about">
+  <section class="problem-section" id="about">
     <div class="container">
       <h2 class="section-title">The problem with today's infrastructure</h2>
       <p class="section-text">
-        Rapid urbanization has led to a <strong class="text-warning">30% annual increase</strong> in traffic congestion. Existing infrastructure relies on <strong>static timers</strong>, which run on pre-set intervals and stay "blind" to actual real-time road density—so signals don't adapt when traffic spikes or drops.
+        Rapid urbanization has led to a <strong class="text-warning">30% annual increase</strong> in traffic congestion. Existing infrastructure relies on <strong>static timers</strong>, which run on pre-set intervals and stay blind to actual road density, so signals do not adapt when traffic spikes or drops.
       </p>
       <h2 class="section-title mt-3">How Traffix changes the game</h2>
       <p class="section-text">
-        Traffix uses AI and computer vision to predict traffic patterns before congestion builds. By forecasting lane-level density by time slot, signals adjust proactively—reducing bottlenecks, improving flow, and building smarter cities.
+        Traffix uses AI and computer vision to predict traffic patterns before congestion builds. By forecasting lane-level density by time slot, signals adjust proactively, reducing bottlenecks and improving flow.
       </p>
     </div>
   </section>
 
-<section class="value-cards container" id="features">
+  <section class="value-cards container" id="features">
     <article class="value-card">
-      <div class="icon">🤖</div>
+      <div class="icon">AI</div>
       <h3>AI predicts before congestion</h3>
-      <p>Computer vision analyzes traffic images to forecast density by time slot—signals adapt before bottlenecks form, not after.</p>
+      <p>Computer vision analyzes traffic images to forecast density by time slot so signals adapt before bottlenecks form, not after.</p>
     </article>
     <article class="value-card">
-      <div class="icon success">🎯</div>
+      <div class="icon success">LN</div>
       <h3>Lane-level intelligence</h3>
       <p>Detect congestion at the lane level, not just intersection-wide. Proactive signal optimization keeps every lane flowing.</p>
     </article>
     <article class="value-card">
-      <div class="icon">⚡</div>
+      <div class="icon">TM</div>
       <h3>Time-based forecasting</h3>
-      <p>Predict traffic patterns by time slot to anticipate rush hours, events, and anomalies—then optimize signals ahead of time.</p>
+      <p>Predict traffic patterns by time slot to anticipate rush hours, events, and anomalies, then optimize signals ahead of time.</p>
     </article>
-  </section>
-
-  <section class="footer-cta">
-    <div class="container">
-      <h2 class="hero-title">Ready to predict and prevent congestion?</h2>
-      <p class="hero-subtitle">
-        Deploy AI-powered traffic optimization that forecasts patterns and adjusts signals proactively—before congestion builds.
-      </p>
-      <div class="cta-row">
-        <a href="{{ url_for('register') }}" class="btn btn-primary">Create account</a>
-        <a href="{{ url_for('login') }}" class="btn btn-secondary">Log in</a>
-      </div>
-    </div>
   </section>
 </main>
 
 <footer class="page-footer">
   <div class="container">
-    <span class="nav-brand">Traff<span>ix</span></span>
-    <span class="footer-tagline">Smart Traffic Signal Optimizer · ITS</span>
+    <span class="nav-brand"><img src="{{ url_for('static', filename='img/traffix-mark.svg') }}" alt="" class="nav-brand-mark" aria-hidden="true"><span class="nav-brand-text">Traff<span>ix</span></span></span>
+    <span class="footer-tagline">Smart Traffic Signal Optimizer | ITS</span>
   </div>
 </footer>
 {% endblock %}

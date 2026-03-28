@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}{{ intersection.name }} Signal Wall - Traffix{% endblock %}
+{% block title %}{{ intersection.name }} Signal View - Traffix{% endblock %}
 {% block extra_css %}
 <style>
   .wall-page{min-height:100vh;padding:18px;background:radial-gradient(circle at top,rgba(14,165,233,.12),transparent 28%),radial-gradient(circle at 80% 15%,rgba(34,197,94,.08),transparent 24%),linear-gradient(180deg,#05070a 0%,#020304 100%)}
@@ -58,13 +58,13 @@
     <section class="wall-card">
       <div class="wall-topbar">
         <div>
-          <div class="page-eyebrow">Dedicated Signal Wall</div>
+          <div class="page-eyebrow">Signal view</div>
           <h1 class="wall-title">{{ intersection.name }}</h1>
           <p class="wall-subtitle">This separate control view shows the latest real signal decision, lane videos, and per-lane light states from your saved AI traffic analyses.</p>
         </div>
         <div class="wall-actions">
-          <a href="{{ url_for('smart_signal', intersection_id=intersection.id) }}" class="btn btn-secondary">Back to AI smart signal</a>
-          <a href="{{ url_for('intersection_monitor', intersection_id=intersection.id) }}" class="btn btn-ghost">Open CCTV view</a>
+          <a href="{{ url_for('smart_signal', intersection_id=intersection.id) }}" class="btn btn-secondary">Back to signal control</a>
+          <a href="{{ url_for('intersection_monitor', intersection_id=intersection.id) }}" class="btn btn-ghost">Open live monitor</a>
         </div>
       </div>
     </section>
@@ -110,7 +110,7 @@
         ? [`<span class="chip green">${escapeHtml(goDirection)} gets green</span>`, `<span class="chip red">${stopDirections.length} approaches stay stop</span>`, `<span class="chip blue">${greenTime}s green window</span>`]
         : [`<span class="chip blue">No live signal yet</span>`];
 
-      decisionCard.innerHTML = `<div class="page-eyebrow">Live controller decision</div><h2>${escapeHtml(goDirection)}</h2><p class="wall-subtitle">${escapeHtml(decision.reason || "Run a photo or video analysis from the AI smart signal page to create the first real signal decision.")}</p><div class="decision-meta">${chips.join("")}</div>`;
+      decisionCard.innerHTML = `<div class="page-eyebrow">Live controller decision</div><h2>${escapeHtml(goDirection)}</h2><p class="wall-subtitle">${escapeHtml(decision.reason || "Run a photo or video analysis from Signal Control to create the first real signal decision.")}</p><div class="decision-meta">${chips.join("")}</div>`;
 
       summaryStats.innerHTML = `
         <div class="stat-card"><div class="stat-label">Cycle time</div><div class="stat-value">${optimization.cycle_time || 0}s</div></div>
@@ -120,7 +120,7 @@
       `;
 
       if (!data?.has_live_signal) {
-        signalWallGrid.innerHTML = `<article class="wall-card empty-wall"><strong>No signal analysis yet</strong>Run a photo or video analysis in AI Smart Signal, then reopen or leave this wall open and it will refresh automatically.</article>`;
+        signalWallGrid.innerHTML = `<article class="wall-card empty-wall"><strong>No signal analysis yet</strong>Run a photo or video analysis in Signal Control, then reopen or leave this view open and it will refresh automatically.</article>`;
         return;
       }
 
@@ -189,7 +189,7 @@
       try {
         const response = await fetch(`/api/intersection/${intersection.id}/signal-wall`, { headers: { "Accept": "application/json" } });
         const payload = await response.json();
-        if (!response.ok) throw new Error(payload.error || "Could not load signal wall.");
+      if (!response.ok) throw new Error(payload.error || "Could not load signal view.");
         snapshot = payload;
         renderSignalWall(snapshot);
       } catch (error) {

@@ -327,6 +327,106 @@ def _normalize_event_duration(raw_value):
     return max(1, min(duration, 240))
 
 
+def _parse_iso_datetime(raw_value):
+    if not raw_value:
+        return None
+    try:
+        return datetime.fromisoformat(raw_value)
+    except (TypeError, ValueError):
+        return None
+
+
+def _format_relative_timestamp(timestamp):
+    if not timestamp:
+        return "No analysis yet"
+
+    delta = datetime.now() - timestamp
+    seconds = max(0, int(delta.total_seconds()))
+    minutes = seconds // 60
+    hours = minutes // 60
+    days = hours // 24
+
+    if minutes < 1:
+        return "Just now"
+    if minutes < 60:
+        return f"{minutes} min ago"
+    if hours < 24:
+        return f"{hours} hr ago" if hours == 1 else f"{hours} hrs ago"
+    if days == 1:
+        return "1 day ago"
+    return f"{days} days ago"
+
+
+def _build_latest_history_index(history_items):
+    latest = {}
+
+    for item in history_items or []:
+        intersection_id = item.get("intersection_id")
+        timestamp = _parse_iso_datetime(item.get("timestamp"))
+        if not intersection_id or not timestamp:
+            continue
+
+        existing = latest.get(intersection_id)
+        if not existing or timestamp > existing["timestamp"]:
+            latest[intersection_id] = {
+                "timestamp": timestamp,
+                "record": item,
+            }
+
+    return latest
+
+
+def _build_analysis_snapshot(intersection, latest_entry=None):
+    if not latest_entry:
+        return {
+            "has_analysis": False,
+            "freshness_tone": "none",
+            "freshness_label": "No analysis",
+            "last_analysis_relative": "No analysis yet",
+            "last_analysis_display": "-",
+            "analysis_mode": None,
+            "analysis_mode_label": "Awaiting data",
+            "total_vehicles": 0,
+            "lanes_analyzed": 0,
+            "highest_lane": "-",
+            "highest_density": "-",
+            "age_hours": None,
+        }
+
+    record = latest_entry["record"]
+    timestamp = latest_entry["timestamp"]
+    summary = record.get("summary") or {}
+    age_hours = max(0.0, (datetime.now() - timestamp).total_seconds() / 3600)
+
+    if age_hours <= 6:
+        freshness_tone = "good"
+        freshness_label = "Fresh"
+    elif age_hours <= 24:
+        freshness_tone = "warn"
+        freshness_label = "Aging"
+    else:
+        freshness_tone = "bad"
+        freshness_label = "Stale"
+
+    analysis_mode = record.get("analysis_mode") or "photo"
+    analysis_mode_label = "Video simulation" if analysis_mode == "video" else "Photo analysis"
+
+    return {
+        "has_analysis": True,
+        "freshness_tone": freshness_tone,
+        "freshness_label": freshness_label,
+        "last_analysis_relative": _format_relative_timestamp(timestamp),
+        "last_analysis_display": timestamp.strftime("%d %b %Y, %I:%M %p"),
+        "analysis_mode": analysis_mode,
+        "analysis_mode_label": analysis_mode_label,
+        "total_vehicles": summary.get("total_vehicles", 0),
+        "lanes_analyzed": summary.get("lanes_analyzed", 0),
+        "highest_lane": summary.get("highest_congestion_lane") or "-",
+        "highest_density": summary.get("highest_congestion_density") or "-",
+        "age_hours": age_hours,
+    }
+
+
 def _allowed_video_file(filename):
     return Path(filename or "").suffix.lower() in ALLOWED_VIDEO_EXTENSIONS
 
@@ -1010,6 +1110,8 @@ def check_password(email, password):
 
 @app.route("/")
 def index():
+    if session.get("user_id"):
+        return redirect(url_for("dashboard"))
     return render_template("index.html")
 
 
@@ -1084,16 +1186,20 @@ def register():
 @login_required
 def dashboard():
     intersections = load_intersections()
+    latest_history = _build_latest_history_index(load_traffic_history())
     total_intersections = len(intersections)
     total_cameras = 0
     active_cameras = 0
     maintenance_intersections = 0
     healthy_intersections = 0
+    fresh_analyses = 0
+    stale_analyses = 0
     alerts = []
     priority_intersections = []
 
     for intersection in intersections:
         lanes = intersection.get("lanes", [])
+        analysis_snapshot = _build_analysis_snapshot(intersection, latest_history.get(intersection["id"]))
         camera_total = len(lanes)
         camera_active = sum(1 for lane in lanes if lane.get("camera", {}).get("status"))
         camera_offline = camera_total - camera_active
@@ -1107,6 +1213,12 @@ def dashboard():
 
         if status == "active" and camera_total > 0 and camera_active == camera_total:
             healthy_intersections += 1
+
+        if analysis_snapshot["has_analysis"]:
+            if analysis_snapshot["age_hours"] is not None and analysis_snapshot["age_hours"] <= 24:
+                fresh_analyses += 1
+            elif analysis_snapshot["age_hours"] is not None:
+                stale_analyses += 1
 
         if status == "maintenance":
             alerts.append({
@@ -1145,11 +1257,14 @@ def dashboard():
             "camera_total": camera_total,
             "camera_active": camera_active,
             "camera_offline": camera_offline,
+            "analysis_snapshot": analysis_snapshot,
             "priority_score": (
                 300 if status == "maintenance" else 0
             ) + (
                 200 if camera_total > 0 and camera_active == 0 else 0
-            ) + (camera_offline * 10),
+            ) + (camera_offline * 10) + (
+                20 if analysis_snapshot["freshness_tone"] == "bad" else 8 if analysis_snapshot["freshness_tone"] == "warn" else 0
+            ),
         })
 
     priority_intersections.sort(key=lambda item: (-item["priority_score"], item["name"]))
@@ -1163,6 +1278,8 @@ def dashboard():
         "offline_cameras": total_cameras - active_cameras,
         "maintenance": maintenance_intersections,
         "healthy_intersections": healthy_intersections,
+        "fresh_analyses": fresh_analyses,
+        "stale_analyses": stale_analyses,
     }
 
     quick_actions = [
@@ -1253,7 +1370,14 @@ def profile():
 @login_required
 def intersections():
     intersections = load_intersections()
-    return render_template("intersections.html", intersections=intersections)
+    latest_history = _build_latest_history_index(load_traffic_history())
+    enriched_intersections = []
+
+    for intersection in intersections:
+        enriched = dict(intersection)
+        enriched["analysis_snapshot"] = _build_analysis_snapshot(intersection, latest_history.get(intersection["id"]))
+        enriched_intersections.append(enriched)
+    return render_template("intersections.html", intersections=enriched_intersections)
 
 
 @app.route("/intersection/<intersection_id>")
@@ -1263,6 +1387,9 @@ def intersection_detail(intersection_id):
     if not intersection:
         flash("Intersection not found.", "error")
         return redirect(url_for("intersections"))
+    intersection = dict(intersection)
+    latest_history = _build_latest_history_index(load_traffic_history())
+    intersection["analysis_snapshot"] = _build_analysis_snapshot(intersection, latest_history.get(intersection_id))
     return render_template("intersection_detail.html", intersection=intersection)
 
 

@@ -50,6 +50,58 @@
     font-weight: 700;
     font-size: 1.1rem;
   }
+  .analysis-banner {
+    margin-bottom: var(--space-6);
+    padding: 18px 20px;
+    border-radius: var(--radius-lg);
+    border: 1px solid rgba(255,255,255,0.08);
+    background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02));
+    box-shadow: var(--shadow-soft);
+  }
+  .analysis-banner-top {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    margin-bottom: 10px;
+  }
+  .analysis-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 10px;
+    border-radius: 999px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    background: rgba(255,255,255,0.05);
+    color: var(--text-secondary);
+  }
+  .analysis-badge.good {
+    background: rgba(52, 211, 153, 0.12);
+    color: var(--success);
+  }
+  .analysis-badge.warn {
+    background: rgba(251, 191, 36, 0.12);
+    color: var(--warning);
+  }
+  .analysis-badge.bad {
+    background: rgba(248, 113, 113, 0.12);
+    color: var(--error);
+  }
+  .analysis-badge.none {
+    background: rgba(148, 163, 184, 0.14);
+    color: var(--text-secondary);
+  }
+  .analysis-banner-copy {
+    color: var(--text-secondary);
+    font-size: 0.95rem;
+    line-height: 1.65;
+  }
+  .analysis-banner-copy strong {
+    color: var(--text-primary);
+  }
 
   .section-card {
     background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.015));
@@ -331,25 +383,14 @@
 {% endblock %}
 
 {% block body %}
-<header class="site-header">
-  <div class="nav-shell">
-    <nav class="nav container">
-      <a href="{{ url_for('index') }}" class="nav-brand">Traff<span>ix</span></a>
-      <div class="nav-links">
-        <a href="{{ url_for('dashboard') }}" class="btn btn-ghost"><span class="icon-inline">⌘</span>Dashboard</a>
-        <a href="{{ url_for('intersections') }}" class="btn btn-ghost active"><span class="icon-inline">◫</span>Intersections</a>
-        <a href="{{ url_for('profile') }}" class="btn btn-ghost"><span class="icon-inline">○</span>Profile</a>
-        <a href="{{ url_for('logout') }}" class="btn btn-secondary">Log out</a>
-      </div>
-    </nav>
-  </div>
-</header>
+{% set active_page = "intersections" %}
+{% include "_app_nav.html" %}
 
 <main class="page-shell">
   <div class="container">
     <section class="page-hero">
       <div class="page-hero-copy">
-        <div class="page-eyebrow">Intersection detail</div>
+        <div class="page-eyebrow">Intersection overview</div>
         <h1 class="page-title">{{ intersection.name }}</h1>
         <p class="page-subtitle">{{ intersection.location }} with {{ intersection.num_roads }} connected roads. Review system health, update core metadata, and manage lane cameras from one structured view.</p>
       </div>
@@ -363,8 +404,8 @@
         <p class="detail-subtitle">{{ intersection.location }} • {{ intersection.num_roads }} roads • <strong>{{ intersection.status }}</strong></p>
       </div>
       <div class="detail-actions">
-        <a href="{{ url_for('smart_signal', intersection_id=intersection.id) }}" class="btn btn-secondary">Open AI signal</a>
-        <a href="{{ url_for('intersection_monitor', intersection_id=intersection.id) }}" class="btn btn-primary">Open CCTV view</a>
+        <a href="{{ url_for('smart_signal', intersection_id=intersection.id) }}" class="btn btn-secondary"><span class="icon-inline"><svg viewBox="0 0 24 24"><use href="#icon-signal-control"/></svg></span>Signal control</a>
+        <a href="{{ url_for('intersection_monitor', intersection_id=intersection.id) }}" class="btn btn-primary"><span class="icon-inline"><svg viewBox="0 0 24 24"><use href="#icon-monitor"/></svg></span>Live monitor</a>
         <a href="{{ url_for('intersections') }}" class="btn btn-ghost">← Back</a>
         <form action="{{ url_for('intersection_delete', intersection_id=intersection.id) }}" method="post" onsubmit="return confirm('Delete this intersection? This cannot be undone.');">
           <button type="submit" class="btn btn-secondary">Delete</button>
@@ -386,6 +427,24 @@
         <div class="value">{{ intersection.lanes|selectattr('camera.status')|list|length }}</div>
       </div>
     </div>
+
+    <section class="analysis-banner">
+      <div class="analysis-banner-top">
+        <div>
+          <div class="section-kicker">Analysis status</div>
+          <h2 class="section-title">Latest signal intelligence</h2>
+        </div>
+        <span class="analysis-badge {{ intersection.analysis_snapshot.freshness_tone }}">{{ intersection.analysis_snapshot.freshness_label }}</span>
+      </div>
+      <div class="analysis-banner-copy">
+        <strong>{{ intersection.analysis_snapshot.last_analysis_relative }}</strong>
+        {% if intersection.analysis_snapshot.has_analysis %}
+        · {{ intersection.analysis_snapshot.analysis_mode_label }} recorded {{ intersection.analysis_snapshot.total_vehicles }} vehicles across {{ intersection.analysis_snapshot.lanes_analyzed }} lanes. Highest congestion was {{ intersection.analysis_snapshot.highest_lane }} ({{ intersection.analysis_snapshot.highest_density }}).
+        {% else %}
+        · No traffic analysis has been saved for this intersection yet. Open Signal Control to run a photo or video analysis.
+        {% endif %}
+      </div>
+    </section>
 
     <div class="section-card">
       <h2 class="section-title">Update intersection</h2>
