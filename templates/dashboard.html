@@ -78,7 +78,6 @@
     line-height: 1.65;
   }
   .alert-actions,
-  .action-actions,
   .priority-actions {
     display: flex;
     gap: 10px;
@@ -98,6 +97,15 @@
     gap: 10px;
     flex-wrap: wrap;
     margin: 10px 0 0;
+  }
+  .priority-note {
+    margin-top: 12px;
+    color: var(--text-secondary);
+    font-size: 0.92rem;
+    line-height: 1.55;
+  }
+  .priority-note strong {
+    color: var(--text-primary);
   }
   .priority-pill {
     display: inline-flex;
@@ -131,19 +139,8 @@
 </style>
 {% endblock %}
 {% block body %}
-<header class="site-header">
-  <div class="nav-shell">
-    <nav class="nav container">
-      <a href="{{ url_for('index') }}" class="nav-brand">Traff<span>ix</span></a>
-      <div class="nav-links">
-        <a href="{{ url_for('dashboard') }}" class="btn btn-ghost active"><span class="icon-inline">⌘</span>Dashboard</a>
-        <a href="{{ url_for('intersections') }}" class="btn btn-ghost"><span class="icon-inline">◫</span>Intersections</a>
-        <a href="{{ url_for('profile') }}" class="btn btn-ghost"><span class="icon-inline">○</span>Profile</a>
-        <a href="{{ url_for('logout') }}" class="btn btn-secondary">Log out</a>
-      </div>
-    </nav>
-  </div>
-</header>
+{% set active_page = "dashboard" %}
+{% include "_app_nav.html" %}
 
 <main class="page-shell">
   <div class="container">
@@ -155,41 +152,41 @@
       </div>
       <div class="page-actions">
         <a href="{{ url_for('intersections') }}" class="btn btn-primary">Manage intersections</a>
-        <a href="{{ url_for('index') }}" class="btn btn-secondary">View homepage</a>
+        <a href="{{ url_for('profile') }}" class="btn btn-secondary">View profile</a>
       </div>
     </section>
 
     <section class="dash-layout">
       <div class="stat-grid dash-kpis">
         <article class="stat-card">
-          <div class="label"><span class="icon-inline">◫</span>Total intersections</div>
+          <div class="label">Total intersections</div>
           <div class="value">{{ stats.intersections }}</div>
           <div class="hint">Configured network nodes</div>
         </article>
         <article class="stat-card">
-          <div class="label"><span class="icon-inline">◌</span>Total cameras</div>
+          <div class="label">Total cameras</div>
           <div class="value">{{ stats.sensors }}</div>
           <div class="hint">Lane cameras in the system</div>
         </article>
         <article class="stat-card">
-          <div class="label"><span class="icon-inline">↗</span>Active cameras</div>
+          <div class="label">Active cameras</div>
           <div class="value">{{ stats.active_signals }}</div>
           <div class="hint">Feeds ready for monitoring</div>
         </article>
         <article class="stat-card">
-          <div class="label"><span class="icon-inline">!</span>Offline cameras</div>
+          <div class="label">Offline cameras</div>
           <div class="value">{{ stats.offline_cameras }}</div>
           <div class="hint">Need attention or re-enable</div>
         </article>
         <article class="stat-card">
-          <div class="label"><span class="icon-inline">✓</span>Healthy intersections</div>
-          <div class="value">{{ stats.healthy_intersections }}</div>
-          <div class="hint">Fully active and ready</div>
+          <div class="label">Fresh analyses</div>
+          <div class="value">{{ stats.fresh_analyses }}</div>
+          <div class="hint">Updated in the last 24 hours</div>
         </article>
         <article class="stat-card">
-          <div class="label"><span class="icon-inline">⚠</span>Maintenance</div>
-          <div class="value">{{ stats.maintenance }}</div>
-          <div class="hint">Intersections under review</div>
+          <div class="label">Stale analyses</div>
+          <div class="value">{{ stats.stale_analyses }}</div>
+          <div class="hint">Need a newer traffic run</div>
         </article>
       </div>
 
@@ -207,11 +204,11 @@
           <div class="alert-list">
             {% for alert in alerts %}
             <article class="alert-card {{ alert.tone }}">
-              <div class="alert-title">{{ alert.title }}</div>
-              <div class="alert-copy">{{ alert.copy }}</div>
+              <div class="alert-title">{{ alert["title"] }}</div>
+              <div class="alert-copy">{{ alert["copy"] }}</div>
               <div class="alert-actions">
-                <a href="{{ url_for('intersection_detail', intersection_id=alert.intersection_id) }}" class="btn btn-secondary">Open detail</a>
-                <a href="{{ url_for('intersection_monitor', intersection_id=alert.intersection_id) }}" class="btn btn-ghost">Open CCTV</a>
+                <a href="{{ url_for('intersection_detail', intersection_id=alert["intersection_id"]) }}" class="btn btn-secondary"><span class="icon-inline"><svg viewBox="0 0 24 24"><use href="#icon-overview"/></svg></span>Open overview</a>
+                <a href="{{ url_for('intersection_monitor', intersection_id=alert["intersection_id"]) }}" class="btn btn-ghost"><span class="icon-inline"><svg viewBox="0 0 24 24"><use href="#icon-monitor"/></svg></span>Live monitor</a>
               </div>
             </article>
             {% endfor %}
@@ -224,22 +221,25 @@
         <aside class="surface-panel section-block">
           <div class="dash-panel-header">
             <div>
-              <div class="section-kicker">Quick actions</div>
-              <h2 class="section-title">Jump faster</h2>
+              <div class="section-kicker">Network status</div>
+              <h2 class="section-title">Operational summary</h2>
             </div>
-            <div class="dash-panel-copy">Shortcuts for the most common operator tasks.</div>
+            <div class="dash-panel-copy">A quick snapshot of overall system health so you can decide whether to inspect alerts or jump straight into intersection overviews.</div>
           </div>
 
           <div class="action-list">
-            {% for action in quick_actions %}
             <article class="action-card">
-              <div class="action-title">{{ action.title }}</div>
-              <div class="action-copy">{{ action.copy }}</div>
-              <div class="action-actions">
-                <a href="{{ action.href }}" class="btn btn-{{ action.tone }}">{{ action.label }}</a>
-              </div>
+              <div class="action-title">Healthy intersections</div>
+              <div class="action-copy">{{ stats.healthy_intersections }} intersections are fully active with all configured cameras online.</div>
             </article>
-            {% endfor %}
+            <article class="action-card">
+              <div class="action-title">Maintenance</div>
+              <div class="action-copy">{{ stats.maintenance }} intersections are marked for review or maintenance work.</div>
+            </article>
+            <article class="action-card">
+              <div class="action-title">Analysis freshness</div>
+              <div class="action-copy">{{ stats.fresh_analyses }} intersections have fresh signal data, while {{ stats.stale_analyses }} need a new analysis pass.</div>
+            </article>
           </div>
         </aside>
       </div>
@@ -250,7 +250,7 @@
             <div class="section-kicker">Direct links</div>
             <h2 class="section-title">Priority intersections</h2>
           </div>
-          <div class="dash-panel-copy">Open the intersections with the highest urgency score, then jump straight into detail or CCTV view.</div>
+          <div class="dash-panel-copy">Open the intersections with the highest urgency score, then jump straight into overview or live monitoring.</div>
         </div>
 
         <div class="priority-list">
@@ -265,10 +265,21 @@
               <span class="priority-pill {{ 'good' if item.camera_offline == 0 else 'warn' if item.camera_active > 0 else 'bad' }}">
                 {{ item.camera_active }}/{{ item.camera_total }} cameras active
               </span>
+              <span class="priority-pill {{ item.analysis_snapshot.freshness_tone }}">
+                {{ item.analysis_snapshot.freshness_label }}
+              </span>
+            </div>
+            <div class="priority-note">
+              <strong>{{ item.analysis_snapshot.last_analysis_relative }}</strong>
+              {% if item.analysis_snapshot.has_analysis %}
+              · {{ item.analysis_snapshot.analysis_mode_label }} · {{ item.analysis_snapshot.total_vehicles }} vehicles detected
+              {% else %}
+              · Run a signal analysis to generate timing recommendations
+              {% endif %}
             </div>
             <div class="priority-actions">
-              <a href="{{ url_for('intersection_detail', intersection_id=item.id) }}" class="btn btn-secondary">Open detail</a>
-              <a href="{{ url_for('intersection_monitor', intersection_id=item.id) }}" class="btn btn-primary">Open CCTV</a>
+              <a href="{{ url_for('intersection_detail', intersection_id=item.id) }}" class="btn btn-secondary"><span class="icon-inline"><svg viewBox="0 0 24 24"><use href="#icon-overview"/></svg></span>Open overview</a>
+              <a href="{{ url_for('intersection_monitor', intersection_id=item.id) }}" class="btn btn-primary"><span class="icon-inline"><svg viewBox="0 0 24 24"><use href="#icon-monitor"/></svg></span>Live monitor</a>
             </div>
           </article>
           {% endfor %}

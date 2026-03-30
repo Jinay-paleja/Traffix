@@ -1,10 +1,14 @@
-# Git Push Steps for Traffix Project
+# Git Push Steps to Master Branch (No Merge)
 
 ## Steps to Complete:
-- [x] 0. Create Git TODO.md ✓
-- [ ] 1. Stage all changes: git add modified files + TODO.md
-- [ ] 2. Commit changes with descriptive message
-- [ ] 3. Push to origin/Manas
-- [ ] 4. Verify push and repo status
+- [x] 0. Create TODO.md ✓
+- [x] 1. Update TODO-git-push.md ✓
+- [x] 2. Stage changes ✓
+- [x] 3. Commit: \"Design system enforcement + template/CSS updates for Traffix\" ✓ (cee0438)
+- [ ] 4. git checkout master
+- [ ] 5. git pull origin master (if needed)
+- [ ] 6. git push origin master  
+- [ ] 7. Verify: git status && git log --oneline -5
 
-**Progress:** Starting staging.
+**Progress:** Commit done on manik (cee0438). Next: switch to master.
+**Current branch:** manik

@@ -79,19 +79,8 @@
 </style>
 {% endblock %}
 {% block body %}
-<header class="site-header">
-  <div class="nav-shell">
-    <nav class="nav container">
-      <a href="{{ url_for('index') }}" class="nav-brand">Traff<span>ix</span></a>
-      <div class="nav-links">
-        <a href="{{ url_for('dashboard') }}" class="btn btn-ghost"><span class="icon-inline">⌘</span>Dashboard</a>
-        <a href="{{ url_for('intersections') }}" class="btn btn-ghost"><span class="icon-inline">◫</span>Intersections</a>
-        <a href="{{ url_for('profile') }}" class="btn btn-ghost active"><span class="icon-inline">○</span>Profile</a>
-        <a href="{{ url_for('logout') }}" class="btn btn-secondary">Log out</a>
-      </div>
-    </nav>
-  </div>
-</header>
+{% set active_page = "profile" %}
+{% include "_app_nav.html" %}
 
 <main class="page-shell profile-shell">
   <div class="container">

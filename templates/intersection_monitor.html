@@ -337,7 +337,7 @@
     <section class="monitor-header-card">
       <section class="monitor-topbar">
         <div>
-          <div class="page-eyebrow">CCTV monitor mode</div>
+          <div class="page-eyebrow">Live monitor</div>
           <h1 class="monitor-title">{{ intersection.name }}</h1>
           <p class="monitor-subtitle">
             {{ intersection.location }} · {{ lane_count }} live camera tile{{ '' if lane_count == 1 else 's' }} fitted automatically for this intersection{% if hidden_count > 0 %} · {{ hidden_count }} disabled hidden from the wall{% endif %}.
@@ -347,7 +347,7 @@
           <button type="button" class="btn btn-secondary" id="enter-fullscreen-btn">Fullscreen</button>
           <button type="button" class="btn btn-primary" id="start-all-cameras-btn">Enable camera</button>
           <button type="button" class="btn btn-ghost" id="stop-all-cameras-btn">Stop camera</button>
-          <a href="{{ url_for('intersection_detail', intersection_id=intersection.id) }}" class="btn btn-ghost">Back to detail</a>
+          <a href="{{ url_for('intersection_detail', intersection_id=intersection.id) }}" class="btn btn-ghost">Back to overview</a>
         </div>
       </section>
     </section>

@@ -1,0 +1,381 @@
+ 
+DEPARTMENT OF INFORMATION TECHNOLOGY 
+ 
+
+ 
+Synopsis of Community Engagement PBL - Mini Project On 
+ 
+    Ghar Ka Khaana- A Home Food Delivery        
+   Platform for Students & Bachelors 
+ 
+                                Prepared By: 
+Reedham Parmar (Roll No- 5) Moksh Patel (Roll No- 7) 
+Ashutosh Ramani (Roll No- 17) Sanskruti Tayade (Roll No- 52) 
+ 
+                       Under the guidance of: 
+                     Name of Guide: Prof. Trupti Patil 
+Department 	of 	Information 	Technology Academic Year: 2025-2026 
+Autonomy Syllabus Scheme-III (2025-26) - SEMESTER III (SY - IT) 
+ 
+ 
+                                     CERTIFICATE 
+ 
+This is to certify that following students: 
+Roll No. / Seat No. 
+Reedham Parmar 5 Moksh Patel 7 Ashutosh Ramani 17 Sanskruti Tayade 52  
+have submitted Community Engagement PBL - Mini Project Report on "Ghar ka Khaana- A Home 
+Food Delivery Platform for Students and Bachelors" as the partial fulfillment for the requirement of Third Year of Engineering (3rd Semester) in S.Y. - Information Technology under my guidance during the academic year 2025-2026. 
+ 
+ 
+ 
+ 
+Prof. Trupti Patil Dr. Radhika Kotecha Project Guide Head of Department Assistant Professor Professor Department of Information Technology Department of Information Technology  
+ 
+ 
+ 
+Date of Examination:   
+ 
+ 
+ 
+ 
+	Signature of Internal Examiner 	Signature of External Examiner 
+ 
+ 
+ 
+ 
+ 
+Table of Contents 
+ 
+ 
+Acknowledgement 4 Abstract 5 Introduction 6 Literature Review 8 Functionalities of Proposed System 10 Implementation Details and Results 15 Sustainability Analysis and Testing 23 References 26  
+Acknowledgment 
+ 
+The successful completion of this project, Ghar Ka Khaana- A Home Food Delivery Platform for Students & Bachelors, has been a deeply enriching experience that has strengthened our technical, analytical, and collaborative skills. This achievement would not have been possible without the invaluable guidance, encouragement, and support of several individuals who have contributed in various ways throughout the course of this project. 
+We would like to express our sincere and heartfelt gratitude to our Project Guide, Prof. Trupti Patil, and our Mini Project Co-Ordinator, Prof. Sarita Rathod, for their continuous supervision, insightful suggestions, and unwavering encouragement. Their expertise and guidance have been instrumental in shaping the direction of our project and ensuring that every stage - from conceptualization to implementation - meets both academic and professional standards. Their keen interest in our vision and their constructive feedback helped us refine our ideas and overcome challenges effectively. 
+ 
+Our sincere appreciation goes to Dr. Radhika Kotecha, Head of the Department, for her vision, leadership, and for fostering a dynamic academic environment that encourages innovation, creativity, and practical learning. Her emphasis on project-based learning and real-world problem-solving has inspired us to think critically and apply our technical knowledge to meaningful outcomes. 
+We are deeply grateful to Dr. Vivek Sunnapwar, Principal of our institution, for his constant encouragement and support. His focus on student research, innovation, and technological advancement has motivated us to pursue excellence and contribute positively to our academic community. 
+ 
+This project marks not only the culmination of our academic efforts but also a significant milestone in our journey as budding engineers. We are truly thankful to everyone who has contributed, directly or indirectly, to the success of this project.
+ 
+Abstract 
+ 
+In today's urban lifestyle, students, bachelors, and working professionals often face challenges in maintaining a healthy and affordable diet due to limited access to home-cooked food. Simultaneously, numerous skilled home chefs possess exceptional culinary abilities but lack a proper platform to reach potential customers. To address this gap, Ghar Ka Khaana has been developed as a centralized webbased platform that connects individuals seeking nutritious, home-cooked meals with verified local home chefs. The system allows users to browse menus, place orders, schedule deliveries, and make secure online payments with ease. For home chefs, it offers an opportunity to showcase their culinary skills, manage orders, and earn income. The platform ensures hygiene, affordability, and convenience, providing a sustainable solution for those living away from home.  
+ 
+By automating and digitalizing the homemade meal service process, Ghar Ka Khaana fosters a culture of healthy eating, supports small-scale entrepreneurs, and strengthens the local economy. It promotes environmental and social sustainability by encouraging home-based food production and reducing dependence on commercial fast-food outlets. The system's modular architecture also allows for future scalability - including real-time delivery tracking, mobile app integration, AI-based meal recommendations, and partnerships with hostels and local vendors.
+Chapter 1 Introduction 
+Ghar Ka Khaana is a web-based platform designed to connect students, bachelors, and working professionals with verified home chefs offering affordable, hygienic, and freshly cooked meals. It bridges the gap between individuals seeking healthy food and home-based cooks looking to expand their reach. The system provides role-based access for Users, Chefs, and Admins - where users can browse meals, subscribe to tiffin plans, and make payments; chefs can manage profiles, menus, and orders; and admins handle verification, feedback, and overall platform management. The platform ensures efficiency, transparency, and scalability. By digitalizing homemade food services, Ghar Ka Khaana promotes healthy eating, supports local entrepreneurs, and contributes to a sustainable, community-driven food ecosystem. 
+1.1 Motivation 
+Students, working professionals, and bachelors living away from home often face challenges in maintaining a healthy diet due to time constraints and limited access to homemade food. On the other hand, many skilled home cooks prepare quality meals but lack visibility and a reliable way to reach customers. Ghar Ka Khaana aims to bridge this gap by creating a simple, community-based food delivery platform that benefits both customers and home cooks. 
+1.2 Problem Analysis 
+Existing food delivery apps mainly promote restaurants, not home kitchens. Home cooks struggle to reach customers, and users cannot easily find verified local meal providers. The main issues are lack of visibility, trust, and a structured system for menu listings, subscriptions, and order management. 
+1.3 Objectives 
+• To connect home chefs with students and bachelors seeking homemade food. 
+• To provide verified chef profiles with menus and pricing. 
+• To enable users to order or subscribe to meal plans by location and cuisine. 
+• To offer secure login, order tracking, and feedback options. 
+ 
+ 
+ 
+1.4 Scope 
+Web-based platform with registration, menu listing, subscriptions, advance payments and feedback. Out of scope: real-time delivery tracking, large-scale logistics management and mobile app support for future phases. 
+
+ 
+  	Chapter 2  	Literature Review
+ 
+1.1 Related Work 
+    Automation and digitization in the food service industry have become increasingly significant        for improving customer experience, operational efficiency, and accessibility. Jadhav and      More [1] discuss the development of web-based food ordering systems that streamline      interactions between customers and food providers. Their findings emphasize the importance         of digital interfaces, real-time order tracking, and efficient data management - principles         that directly inform the design of Ghar Ka Khaana, which connects users with verified home          chefs through a centralized online platform. 
+Sharma et al. [2] explore online tiffin and homemade food delivery solutions aimed at students and working professionals. Their research highlights the growing demand for healthy, home-cooked meals and the challenges faced in ensuring affordability, hygiene, and timely delivery. Ghar Ka Khaana adopts these insights by implementing a structured subscription-based model that provides accessible and nutritious meal options through verified local chefs. 
+Patel and Nair [3] examine role-based food delivery management systems, underscoring the need for different access levels for users, service providers, and administrators. Their study demonstrates how role-based authorization enhances security and operational control. 
+Inspired by this, Ghar Ka Khaana incorporates dedicated dashboards for Users, Chefs, and Admins to ensure transparency, accountability, and efficient coordination. 
+Kaur and Bhatia [4] analyze feedback-driven online food platforms, emphasizing how customer reviews and ratings improve service quality and trust. Integrating similar mechanisms, Ghar Ka Khaana includes a feedback and rating module that helps maintain service standards and promotes continuous improvement among home chefs. 
+Gupta and Iyer [5] discuss the application of cloud databases and web technologies in scalable online service systems. Their research supports the use of flexible, non-relational databases for handling large and dynamic datasets. Ghar Ka Khaana leverages MongoDB for efficient data management, scalability, and seamless integration with the platform's backend. 
+Collectively, these studies highlight that automation, role-based management, feedback integration, and scalable architectures are essential elements in building efficient digital food delivery systems. Drawing from these works, Ghar Ka Khaana incorporates these principles to create a reliable, secure, and community-driven platform that connects customers with local home chefs while promoting healthy and affordable eating habits. 
+1.2 Existing System 
+The current food delivery ecosystem is dominated by platforms like Swiggy and Zomato, which focus mainly on restaurant-based meals. While convenient, they often lack affordability, personalization, and the homely touch that many consumers seek. They also offer limited opportunities for local home chefs to participate and earn through digital means. 
+Local tiffin services and small vendors address this demand for homemade food but rely on manual or WhatsApp-based ordering. WhatsApp/Facebook groups allow quick local communication but lack verified chefs, menu consistency, order tracking, and structured records. Even small-scale NGO or community initiatives provide local food options but lack scalable digital infrastructure for discovery, subscription plans, and secure payments. 
+These systems lack automation, order tracking, and secure digital payments, making management inefficient and error-prone. 
+Some services attempt partial digitization using Google Forms or Sheets, which simplify data entry but lack role-based access, chef verification, and privacy controls. Meanwhile, ERP systems and other enterprise tools are too complex and expensive for small home-based kitchens, limiting adoption. 
+Many home chefs still handle orders manually through calls or messages, making scalability and performance tracking difficult. 
+These limitations highlight the need for a dedicated platform like Ghar Ka Khaana, which integrates automation, verified chef profiles, subscription management, secure payments, and real-time order tracking - offering an efficient, transparent, and user-friendly solution for connecting consumers with authentic homemade meals. 
+Chapter 3 Proposed System 
+3.1 Functionalities of the System 
+The proposed system, Ghar Ka Khaana - Home Food Delivery Platform, is designed to digitize, streamline, and automate the process of ordering and delivering homemade meals. The platform ensures efficiency, transparency, and convenience for both customers and home chefs. It provides a modular structure with clearly defined functionalities for each user role, including customers, chefs, and administrators, enabling smooth order management, secure transactions, and reliable delivery tracking. 
+1. Authentication & Authorization Module 
+? Secure user registration and login for customers, chefs, and admins. 
+? Role-based access control to ensure proper permissions. 
+? Password hashing for data protection. 
+? Profile management for updating personal details and preferences. 
+2. Meal & Menu Management Module 
+? Home chefs can add, edit, or remove meals from their menus. 
+? Upload meal images, descriptions, ingredients, and prices. 
+? Categorization of meals (veg, non-veg, special, combo, etc). 
+? Customers can view menus and meal details before ordering. 
+3. Order & Subscription Management Module 
+? Customers can place single orders or subscribe to weekly/monthly tiffin plans. 
+? Order tracking from preparation to delivery. 
+? Cancellation and modification options before order confirmation. ? Automated status updates for chefs and customers. 
+4. Payment & Transaction Module 
+? Secure online payments through integrated gateways. 
+? Order confirmation only after successful payment. 
+? Transaction history available for customers and chefs. 
+5. Feedback & Rating Module 
+? Customers can rate meals and provide feedback. 
+? Chef performance monitoring based on ratings. 
+? Admins can review feedback to maintain quality standards. 
+6. Admin Management Module 
+? Admin dashboard to monitor users, orders, and system activity. 
+? Chef verification and approval before account activation. 
+? Analytics for sales trends, customer engagement, and chef performance. 
+7. Notification & Communication Module 
+? Email and in-platform notifications for order updates and subscriptions. 
+? Alerts for payment confirmation, order delivery, and feedback reminders. ? Messaging support between customers and chefs (if enabled). 8. UI/UX Module 
+? Responsive, mobile-friendly interface. 
+? Clear role-based navigation and dashboards. 
+? Modern design using HTML, CSS, and JavaScript for smooth interactions. ? Emphasis on accessibility and ease of use for all user roles. 
+ 
+ 
+ 
+ 
+Fig 3.1- Use Case Diagram 
+3.2 Proposed Approach and Details 
+The Ghar Ka Khaana platform consists of a modular and scalable architecture, integrating backend APIs with a React-based frontend. The backend manages user authentication, order processing, menu management, and delivery tracking. The frontend ensures a seamless, responsive experience for students and bachelors, offering easy navigation through menus, personalized meal plans, and real- time order updates. 
+ 
+The proposed 3-tier architecture of the Ghar Ka Khaana platform consists of: The frontend (presentation layer), developed using React, provides a responsive and user-friendly interface for students and bachelors to browse menus, place orders, and track deliveries. The backend (application layer), built with Node.js and Express, handles authentication, order processing, menu management, and notifications. The database layer, implemented using MongoDB, efficiently stores user details, meal data, and order histories, ensuring smooth data retrieval and consistency across the system. 
+ 
+ 
+ 
+ 
+Fig 3.2- Block Diagram 
+ 
+ 
+ 
+3.3 Innovation in Idea 
+1. Smart Meal Recommendation: Suggests meals based on user preferences, diet, and order history. 
+2. Modular Architecture: Separate modules for users, menus, orders, and deliveries ensure easy scalability. 
+3. Complete Digital Workflow: Handles everything from ordering to delivery seamlessly online. 
+4. Analytics Dashboard: Tracks popular dishes, peak times, and delivery performance. 
+5. Eco-Friendly & Student-Focused: Promotes sustainable, affordable, home-cooked meals for students and bachelors. 
+ 
+ 
+3.4 Timeline 
+
+ 
+Fig 3.4- Gantt Chart
+ 
+ 
+3.5 Roles and Responsibilities 
+? Reedham Parmar: Frontend, Database  ? Moksh Patel: Backend, Testing 
+? Ashutosh Ramani: Frontend, Database 
+? Sanskruti Tayade: UI/UX Design, Documentation
+
+Chapter 4 Implementation Details and Results 
+The implementation phase of Ghar Ka Khaana focused on developing a fully functional web platform based on the proposed design and architecture. This chapter highlights the technologies, development process, and key outcomes. The system ensures smooth interaction between customers, home chefs, and administrators while maintaining security, reliability, and user-friendliness for an efficient homemade meal experience. 
+4.1  Technology Tech Stack 
+Backend Technologies 
+1. Runtime Environment:  
+• Java (JDK 17)- Used to build server-side logic and handle core business operations. 
+2. Framework:  
+• Java Servlets with JSP (Java Sever Pages)- For processing client requests and generating dynamic web content. 
+3. Database: 
+• MongoDB- Used for efficient storage and retrieval of user profiles, chef details, menus and orders. 
+4. Database Connectivity: 
+• JDBC (Java Database Connectivity)- Enables seamless communication between the Java backend and the MongoDB database. 
+ 
+ 
+ 
+5. Authentication & Security: 
+• Session Management- Maintains user login states securely. 
+• Password Encryption- Implements SHA-256 hashing via Java's MessageDigest for secure password handling. 
+ 
+6. Input Validation & Sanitization: 
+• Prevents injection attacks and ensures data integrity. 
+ 
+7. File Handling: 
+• Apache Commons File Upload (Servlet File Upload)- Manages profile image and menu images upload efficiently. 
+ 
+8. Email Integration: 
+• JavaMail API- Sends order confirmations, feedback acknowledgments, and chef notifications automatically. 
+ 
+9. Configuration Files: 
+• Store database credentials, environment variables, and other sensitive configurations securely.
+       Frontend Technologies 
+ 
+1. Markup & Styling: 
+• HTML5and CSS3- For creating structured, responsive and visually appealing layouts. 
+2. Interactivity: 
+• JavaScript (ES6)- For dynamic elements, form validation and real time interactions. 
+3. Responsive Design: 
+• Flexbox and Grid systems for mobile- friendly layouts. 
+4. UI Enhancements: 
+• Custom CSS animations for menus, dashboards and feedback forms. 
+5. HTTP Client: 
+• Fetch API to communicate with backend rest endpoints. 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+       4.2 Implementation Parameters 
+             Backend Port: 8080 
+             Frontend Port: 5500 (Live Server or VS Code Preview) Session Timeout: 30 minutes 
+             File Upload Limit: Maximum 10 MB (menu images, chef photos) Supported File      
+             Uploads- JPG, PNG, PDF. 
+             Database Collections: o Users Collection: Stores customer details, login credentials, and preferences.  
+o Chefs Collection: Maintains chef profiles, cuisines, and availability. 
+o Menu Collection: Contains meal details, prices, and ratings. 
+o Subscription Collection: Manages meal plans and order records. o  Feedback Collection: Stores customer reviews and ratings. 
+ 
+            Frontend Implementation: 
+           Pages: Home, Login, Signup, Dashboard, Menu, Subscription, Feedback, and Payment.                  Components: Navigation bar, Meal Cards, Registration Forms, Feedback Section,                                       and Cart Management. 
+              User Experience: 
+• Fully responsive UI optimized for both desktop and mobile devices. 
+• Smooth transitions and gradient backgrounds for modern visual design. 
+     
+       Security Measures: 
+• Passwords hashed before storage. 
+• Input validation on both frontend and backend. 
+• Secure session-based authentication for all users. 
+• File uploads verified for type and size before saving. 
+• Database operations protected against injection attacks. 
+ 
+       Preliminary Results: 
+ 
+       The Ghar Ka Khaana portal was successfully implemented and tested in a local development          environment. Key observations include: 
+ 
+• Home Page- Quick access to browse meals or join as a chef, and highlights the platform's values - local chefs, homemade with love, and fresh, fast delivery. 
+ 
+
+Fig 4.21 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+• Meal Page- It showcases featured homemade meals with details and a personalized user dashboard displays total orders, favourite chefs, spending, and reward points, along with sections for recent orders and recommended chefs, enhancing engagement and convenience. 
+    
+              
+Fig 4.22 
+• Admin Page- It provides an overview of platform activity and also includes sections for managing users, chefs, orders, analytics, and settings, along with a platform health panel showing real-time system status. 
+ 
+     
+Fig 4.23 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+• Chef Page- It allows home cooks to manage their meals and orders efficiently, display key stats and upload new meals by adding details such as name, description, price and availability time. 
+
+Fig 4.24 
+ 
+ 
+ 
+ 
+ 
+Chapter 5 Sustainability Analysis and Testing 
+The Ghar Ka Khaana platform is designed not only as a functional food delivery system but also as a sustainable, scalable, and maintainable solution for connecting customers with home chefs. This chapter highlights the system's sustainability aspects, testing approaches, and performance outcomes, ensuring that the platform operates efficiently under various conditions while supporting long-term growth and community impact. 
+ 
+ 
+    5.1 Sustainability Analysis 
+The sustainability of Ghar Ka Khaana is evaluated from technical, operational environments and social perspectives: 
+1. Technical Sustainability: 
+? Modular Architecture: Separate modules for authentication, order management, payments, and feedback enable easy maintenance and scalability. 
+? Database Scalability: MongoDB supports large user bases, meal listings, and transactions without performance issues. 
+2. Operational Sustainability: 
+? Automation: Simplifies order handling, chef verification, and subscription management, reducing manual work. 
+? User Convenience: Real-time updates on meal status and subscriptions improve overall experience. 
+3. Environmental Sustainability: 
+? Paperless System: Fully digital ordering and subscription reduce paper waste. ? Resource Efficiency: Optimized backend and lightweight frontend minimize server energy consumption. 
+4. Social and Economic Sustainability: 
+? Empowerment: Supports local home chefs by providing an online marketplace. ? Community Impact: Promotes healthy, home-cooked meals for students and professionals. 
+ 
+5.2 Testing Methodology 
+1. White Box Testing: 
+• Focused on internal code logic, loops, and data flow within modules. 
+• Verified logic paths, conditions, and function outputs for backend APIs. 
+• Ensured optimized and bug-free algorithms for order and payment handling. 
+ 
+2. Black Box Testing: 
+• Tested the system without internal code visibility. 
+ 
+• Checked input-output behavior such as order submission, login validation, and payment confirmation. 
+ 
+• Ensured system behaves correctly under valid and invalid user inputs. 
+ 
+ 
+ 
+ 
+ 
+Chapter 6 Conclusion 
+The Ghar Ka Khaana system provides a reliable and user-friendly platform for students and bachelors to conveniently access fresh, homemade food. By connecting home chefs with customers through a digital interface, the system promotes healthy eating and supports local home-based food providers. The platform ensures smooth functionality through secure authentication, efficient order management, and real-time tracking features. 
+Comprehensive testing, including unit, integration, functional, white box, and black box testing, confirmed the system's performance, security, and usability. The solution reduces dependency on fast food, minimizes manual processes, and enhances overall user satisfaction. Designed for scalability and sustainability, Ghar Ka Khaana successfully bridges the gap between homemade meals and modern convenience, contributing to a healthier and smarter lifestyle for urban students and working individuals.
+         References 
+                         • S. Jadhav and P. More, "Development of Web-Based Food Ordering Systems for Enhanced Customer Interaction," International Journal of Computer Applications, vol. 182, no. 25, pp. 45-50, 2023.  
+• R. Sharma, K. Deshmukh, and P. Agarwal, "Online Tiffin and Homemade Food Delivery Solutions for Students and Working Professionals," Journal of Emerging Technologies in Food Systems, vol. 5, no. 2, pp. 112-118, 2023.  
+• V. Patel and A. Nair, "Role-Based Food Delivery Management Systems for Secure and Efficient Operations," in Proceedings of the 2023 International Conference on Smart Service Technologies (ICSST), Pune, India, 2023, pp. 231-236. 
+• M. Kaur and S. Bhatia, "Feedback-Driven Online Food Platforms: Enhancing Trust and Service Quality," International Journal of Digital Innovation, vol. 4, no. 3, pp. 89-94, 2022. 
+• R. Gupta and D. Iyer, "Application of Cloud Databases and Web Technologies in Scalable Online Service Systems," IEEE Transactions on Cloud Computing, vol. 10, no. 4, pp. 1556- 1563, 2023.  
+ 	 
+ 
+
+ 
+ 
+
+           
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+  	 
+ 
+SOMAIYA 
+V I D Y A V I H A R 
+K J Somaiya Institute of Technology 
+An Autonomous Institute Permanently Affiliated to the University of Mumbai 
+
+ 
+SOMAIYA 
+V I D Y A V I H A R 
+K J Somaiya Institute of Technology 
+An Autonomous Institute Permanently Affiliated to the University of Mumbai 
+
+ 	2 
+
+ 	2 
+
+ 
+SOMAIYA 
+V I D Y A V I H A R 
+K J Somaiya Institute of Technology 
+An Autonomous Institute Permanently Affiliated to the University of Mumbai 
+
+
+
