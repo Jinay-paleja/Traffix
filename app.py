@@ -14,6 +14,7 @@ Traffix – Smart Traffic Signal Optimizer
 Python web application (Flask).
 """
 import os
+import base64
 import json
 import math
 import random
@@ -69,6 +70,8 @@ INTERSECTION_MEDIA_FILE = BASE_DIR / "data" / "intersection_media.json"
 LANE_VIDEO_UPLOAD_DIR = BASE_DIR / "static" / "uploads" / "lane_videos"
 ALLOWED_IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp"}
 ALLOWED_VIDEO_EXTENSIONS = {".mp4", ".mov", ".avi", ".mkv", ".webm"}
+LIVE_ANALYSIS_STATE = {}
+LIVE_HISTORY_INTERVAL_SECONDS = 60
 
 
 def _normalize_intersections(intersections):
@@ -325,6 +328,59 @@ def _normalize_event_duration(raw_value):
     except (TypeError, ValueError):
         duration = 15
     return max(1, min(duration, 240))
+
+
+def _decode_base64_image(data_url):
+    if not isinstance(data_url, str) or "," not in data_url:
+        return None, "Live frame was missing or malformed."
+
+    _, encoded = data_url.split(",", 1)
+    try:
+        raw_bytes = base64.b64decode(encoded)
+    except (ValueError, TypeError):
+        return None, "Live frame could not be decoded."
+
+    np_buffer = np.frombuffer(raw_bytes, dtype=np.uint8)
+    image = cv2.imdecode(np_buffer, cv2.IMREAD_COLOR)
+    if image is None:
+        return None, "Live frame could not be parsed as an image."
+    return image, None
+
+
+def _get_live_state(intersection_id):
+    state = LIVE_ANALYSIS_STATE.get(intersection_id)
+    if isinstance(state, dict):
+        return state
+
+    state = {
+        "lanes": {},
+        "last_persisted_at": None,
+    }
+    LIVE_ANALYSIS_STATE[intersection_id] = state
+    return state
+
+
+def _smooth_live_vehicle_count(intersection_id, lane_id, detected_count, alpha=0.45):
+    state = _get_live_state(intersection_id)
+    lanes = state["lanes"]
+    lane_state = lanes.get(lane_id, {})
+    previous = float(lane_state.get("smoothed_count", detected_count))
+    smoothed = detected_count if not lane_state else ((alpha * detected_count) + ((1 - alpha) * previous))
+    lane_state["smoothed_count"] = smoothed
+    lane_state["last_seen_at"] = datetime.now().isoformat()
+    lanes[lane_id] = lane_state
+    return max(0, int(round(smoothed)))
+
+
+def _should_persist_live_history(intersection_id):
+    state = _get_live_state(intersection_id)
+    now = datetime.now()
+    last_persisted_at = _parse_iso_datetime(state.get("last_persisted_at"))
+    if last_persisted_at and (now - last_persisted_at).total_seconds() < LIVE_HISTORY_INTERVAL_SECONDS:
+        return False
+
+    state["last_persisted_at"] = now.replace(microsecond=0).isoformat()
+    return True
 
 
 def _parse_iso_datetime(raw_value):
@@ -894,6 +950,93 @@ def _build_lane_analysis(intersection, uploaded_files):
     }, None
 
 
+def _build_live_lane_analysis(intersection, live_frames, analysis_timestamp=None, event_duration_minutes=1):
+    detector = get_traffic_detector()
+    if detector is None:
+        return None, "YOLO model is not available. Install the dependencies and keep yolov8n.pt in the project root."
+
+    optimizer = get_signal_optimizer()
+    lane_lookup = {lane["id"]: lane for lane in intersection.get("lanes", [])}
+    traffic_data = {}
+    lane_results = {}
+    total_vehicles = 0
+
+    for lane_id, encoded_frame in (live_frames or {}).items():
+        lane = lane_lookup.get(lane_id)
+        if not lane:
+            continue
+
+        image, error = _decode_base64_image(encoded_frame)
+        if error:
+            return None, f"{lane.get('name', lane_id)}: {error}"
+
+        result = detector.detect_vehicles(image, image_size=640, max_dimension=960)
+        if "error" in result:
+            return None, f"{lane.get('name', lane_id)}: {result['error']}"
+
+        direction = lane.get("direction", lane_id).title()
+        raw_vehicles = int(result.get("vehicle_count", 0))
+        vehicles = _smooth_live_vehicle_count(intersection.get("id"), lane_id, raw_vehicles)
+        priority = optimizer._get_priority(vehicles)
+
+        lane_results[lane_id] = {
+            "lane_id": lane_id,
+            "lane_name": lane.get("name", direction),
+            "direction": direction,
+            "vehicle_count": vehicles,
+            "raw_vehicle_count": raw_vehicles,
+            "density_level": _density_level_from_count(vehicles),
+            "timestamp": analysis_timestamp or result.get("timestamp"),
+            "detections": result.get("detections", []),
+        }
+        traffic_data[direction] = {"vehicles": vehicles, "priority": priority}
+        total_vehicles += vehicles
+
+    if not lane_results:
+        return None, "No usable live camera frames were received."
+
+    optimization = optimizer.adaptive_timing(
+        {direction: data["vehicles"] for direction, data in traffic_data.items()}
+    )
+    schedule = optimizer.get_signal_schedule(traffic_data)
+    congestion_score = min(100, int((total_vehicles / max(len(traffic_data), 1)) * 4))
+    recommendations = optimizer.get_recommendations(traffic_data, congestion_score)
+    decision = optimizer.build_phase_decision(traffic_data)
+
+    ranked_lanes = sorted(
+        lane_results.values(),
+        key=lambda item: (item["vehicle_count"], item["raw_vehicle_count"]),
+        reverse=True,
+    )
+
+    return {
+        "intersection": {
+            "id": intersection["id"],
+            "name": intersection["name"],
+            "location": intersection.get("location", "Unknown location"),
+        },
+        "analysis_mode": "live",
+        "analysis_timestamp": analysis_timestamp or datetime.now().replace(microsecond=0).isoformat(),
+        "event_duration_minutes": event_duration_minutes,
+        "results": lane_results,
+        "traffic_data": traffic_data,
+        "summary": {
+            "total_vehicles": total_vehicles,
+            "lanes_analyzed": len(lane_results),
+            "highest_congestion_lane": ranked_lanes[0]["lane_name"],
+            "highest_congestion_density": ranked_lanes[0]["density_level"],
+        },
+        "optimization": optimization,
+        "schedule": schedule,
+        "recommendations": recommendations,
+        "decision": decision,
+        "live_meta": {
+            "smoothed_counts": True,
+            "persist_interval_seconds": LIVE_HISTORY_INTERVAL_SECONDS,
+        },
+    }, None
+
+
 def _build_lane_video_analysis(intersection, uploaded_videos, analysis_timestamp=None, event_duration_minutes=15):
     detector = get_traffic_detector()
     if detector is None:
@@ -915,12 +1058,18 @@ def _build_lane_video_analysis(intersection, uploaded_videos, analysis_timestamp
         if error:
             return None, f"{lane.get('name', lane_id)}: {error}"
 
-        result = detector.detect_vehicles_in_video(saved_video["path"], max_frames=60)
+        result = detector.detect_vehicles_in_video(
+            saved_video["path"],
+            max_frames=120,
+            frame_stride=2,
+            image_size=768,
+            max_dimension=1280,
+        )
         if "error" in result:
             return None, f"{lane.get('name', lane_id)}: {result['error']}"
 
         direction = lane.get("direction", lane_id).title()
-        vehicles = int(round(result.get("avg_vehicles_per_frame", 0)))
+        vehicles = int(result.get("representative_vehicle_count", round(result.get("avg_vehicles_per_frame", 0))))
         priority = optimizer._get_priority(vehicles)
 
         lane_results[lane_id] = {
@@ -928,6 +1077,9 @@ def _build_lane_video_analysis(intersection, uploaded_videos, analysis_timestamp
             "lane_name": lane.get("name", direction),
             "direction": direction,
             "vehicle_count": vehicles,
+            "avg_vehicles_per_frame": result.get("avg_vehicles_per_frame", 0),
+            "p75_vehicles_per_frame": result.get("p75_vehicles_per_frame", 0),
+            "peak_weighted_vehicle_count": result.get("peak_weighted_vehicle_count", vehicles),
             "density_level": result.get("density_level", _density_level_from_count(vehicles)),
             "frames_processed": result.get("frames_processed", 0),
             "max_vehicles_in_frame": result.get("max_vehicles_in_frame", 0),
@@ -947,6 +1099,29 @@ def _build_lane_video_analysis(intersection, uploaded_videos, analysis_timestamp
 
     if not lane_results:
         return None, "Upload at least one lane video to run the simulation."
+
+    for lane in intersection.get("lanes", []):
+        lane_id = lane.get("id")
+        if not lane_id or lane_id in lane_results:
+            continue
+
+        direction = lane.get("direction", lane_id).title()
+        lane_results[lane_id] = {
+            "lane_id": lane_id,
+            "lane_name": lane.get("name", direction),
+            "direction": direction,
+            "vehicle_count": 0,
+            "avg_vehicles_per_frame": 0,
+            "p75_vehicles_per_frame": 0,
+            "peak_weighted_vehicle_count": 0,
+            "density_level": _density_level_from_count(0),
+            "frames_processed": 0,
+            "max_vehicles_in_frame": 0,
+            "video_url": "",
+            "timestamp": analysis_timestamp,
+            "analysis_status": "not_uploaded",
+        }
+        traffic_data[direction] = {"vehicles": 0, "priority": optimizer._get_priority(0)}
 
     persisted_media = _save_lane_media(intersection, saved_media)
     optimization = optimizer.adaptive_timing({direction: data["vehicles"] for direction, data in traffic_data.items()})
@@ -1484,6 +1659,38 @@ def analyze_smart_signal_video(intersection_id):
     payload["analysis_mode"] = "video"
     _append_traffic_history(intersection, payload)
     payload["analytics"] = _build_history_analytics(intersection, days=7)
+    return payload
+
+
+@app.route("/api/intersection/<intersection_id>/smart-signal/analyze-live", methods=["POST"])
+@login_required
+def analyze_smart_signal_live(intersection_id):
+    intersection = get_intersection(intersection_id)
+    if not intersection:
+        return {"error": "Intersection not found."}, 404
+
+    data = request.get_json(silent=True) or {}
+    live_frames = data.get("frames") or {}
+    analysis_timestamp = _normalize_analysis_timestamp(data.get("analysis_timestamp"))
+    event_duration_minutes = _normalize_event_duration(data.get("event_duration_minutes") or 1)
+
+    payload, error = _build_live_lane_analysis(
+        intersection,
+        live_frames,
+        analysis_timestamp=analysis_timestamp,
+        event_duration_minutes=event_duration_minutes,
+    )
+    if error:
+        return {"error": error}, 400
+
+    payload["analytics"] = _build_history_analytics(intersection, days=7)
+    payload["persisted_to_history"] = False
+
+    if data.get("persist") and _should_persist_live_history(intersection_id):
+        _append_traffic_history(intersection, payload)
+        payload["persisted_to_history"] = True
+        payload["analytics"] = _build_history_analytics(intersection, days=7)
+
     return payload
 
 

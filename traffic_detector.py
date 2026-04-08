@@ -3,12 +3,12 @@ Traffic Detection Module using YOLO
 Detects vehicles in traffic footage and analyzes traffic density.
 """
 
+import threading
+from datetime import datetime
+
 import cv2
 import numpy as np
 from ultralytics import YOLO
-from pathlib import Path
-import json
-from datetime import datetime
 
 
 class TrafficDetector:
@@ -25,11 +25,36 @@ class TrafficDetector:
     def __init__(self, model_name='yolov8n.pt'):
         """Initialize YOLO model"""
         self.model = YOLO(model_name)
+        self._model_lock = threading.Lock()
         self.vehicle_count = 0
         self.density_level = 'Low'
         self.confidence_threshold = 0.5
-    
-    def detect_vehicles(self, image_path):
+
+    def _prepare_image(self, image, max_dimension=960):
+        """Resize large frames to keep inference latency predictable."""
+        if image is None:
+            return None
+
+        height, width = image.shape[:2]
+        longest_side = max(height, width)
+        if longest_side <= max_dimension:
+            return image
+
+        scale = max_dimension / float(longest_side)
+        new_size = (max(1, int(width * scale)), max(1, int(height * scale)))
+        return cv2.resize(image, new_size, interpolation=cv2.INTER_AREA)
+
+    def _run_inference(self, image, image_size=640):
+        """Serialize access to the shared YOLO model for repeated live requests."""
+        with self._model_lock:
+            return self.model.predict(
+                source=image,
+                conf=self.confidence_threshold,
+                imgsz=image_size,
+                verbose=False,
+            )
+
+    def detect_vehicles(self, image_path, image_size=640, max_dimension=960):
         """
         Detect vehicles in an image.
         
@@ -47,9 +72,9 @@ class TrafficDetector:
         
         if image is None:
             return {'error': 'Could not load image'}
-        
-        # Run inference
-        results = self.model(image, conf=self.confidence_threshold)
+
+        prepared_image = self._prepare_image(image, max_dimension=max_dimension)
+        results = self._run_inference(prepared_image, image_size=image_size)
         
         # Count vehicles
         vehicle_count = 0
@@ -84,7 +109,7 @@ class TrafficDetector:
             'timestamp': datetime.now().isoformat()
         }
     
-    def detect_vehicles_in_video(self, video_path, max_frames=100):
+    def detect_vehicles_in_video(self, video_path, max_frames=100, frame_stride=3, image_size=640, max_dimension=960):
         """
         Detect vehicles across video frames.
         
@@ -103,13 +128,20 @@ class TrafficDetector:
         total_vehicles = 0
         max_vehicles = 0
         vehicle_history = []
+        sampled_frames = 0
+        frame_index = 0
         
-        while frame_count < max_frames:
+        while sampled_frames < max_frames:
             ret, frame = cap.read()
             if not ret:
                 break
-            
-            results = self.model(frame, conf=self.confidence_threshold)
+
+            if frame_stride > 1 and (frame_index % frame_stride) != 0:
+                frame_index += 1
+                continue
+
+            prepared_frame = self._prepare_image(frame, max_dimension=max_dimension)
+            results = self._run_inference(prepared_frame, image_size=image_size)
             
             vehicles_in_frame = 0
             for result in results:
@@ -122,19 +154,34 @@ class TrafficDetector:
             vehicle_history.append(vehicles_in_frame)
             total_vehicles += vehicles_in_frame
             max_vehicles = max(max_vehicles, vehicles_in_frame)
-            frame_count += 1
+            sampled_frames += 1
+            frame_index += 1
         
         cap.release()
         
-        avg_vehicles = total_vehicles / max(frame_count, 1)
+        avg_vehicles = total_vehicles / max(sampled_frames, 1)
+        if vehicle_history:
+            sorted_history = sorted(vehicle_history)
+            percentile_index = min(len(sorted_history) - 1, max(0, int(round((len(sorted_history) - 1) * 0.75))))
+            percentile_75 = sorted_history[percentile_index]
+            peak_weighted = int(round((max_vehicles * 0.65) + (avg_vehicles * 0.35)))
+            representative_count = max(int(round(avg_vehicles)), percentile_75, peak_weighted)
+        else:
+            percentile_75 = 0
+            peak_weighted = 0
+            representative_count = 0
         
         return {
-            'frames_processed': frame_count,
+            'frames_processed': sampled_frames,
+            'frames_seen': frame_index,
             'total_vehicles_detected': total_vehicles,
             'avg_vehicles_per_frame': round(avg_vehicles, 2),
+            'p75_vehicles_per_frame': int(percentile_75),
             'max_vehicles_in_frame': max_vehicles,
+            'peak_weighted_vehicle_count': int(peak_weighted),
+            'representative_vehicle_count': int(representative_count),
             'vehicle_history': vehicle_history,
-            'density_level': self._calculate_density_level(int(avg_vehicles)),
+            'density_level': self._calculate_density_level(int(representative_count)),
             'timestamp': datetime.now().isoformat()
         }
     

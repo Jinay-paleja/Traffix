@@ -2,11 +2,11 @@
 {% block title %}{{ intersection.name }} Signal Control - Traffix{% endblock %}
 {% block extra_css %}
 <style>
-  .smart-layout{display:grid;gap:22px;position:relative}
+  .smart-layout{display:grid;gap:18px;position:relative}
   .smart-layout::before{content:"";position:absolute;inset:12px 0 auto 0;height:280px;background:radial-gradient(circle at top left,rgba(116,34,230,.12),transparent 48%),radial-gradient(circle at top right,rgba(56,189,248,.08),transparent 34%);pointer-events:none;filter:blur(8px)}
   .smart-overview,.workspace-grid{display:grid;gap:18px;position:relative;z-index:1}
   .smart-grid,.board-grid,.lane-grid,.upload-grid,.chart-grid,.toolbar,.analytics-toolbar,.stats-grid,.insights-grid{display:grid;gap:16px}
-  .hero,.signal-board,.panel,.chart-card{padding:28px}
+  .hero,.signal-board,.panel,.chart-card{padding:22px}
   .hero,.signal-board,.panel,.chart-card,.lane-card,.upload-card,.insight-card,.record-item,.stat-card{background:linear-gradient(180deg,rgba(24,24,31,.94),rgba(12,12,17,.96));border:1px solid rgba(255,255,255,0.08);border-radius:30px;box-shadow:0 22px 60px rgba(0,0,0,.28), inset 0 1px 0 rgba(255,255,255,.04)}
   .eyebrow,.mini-label{text-transform:uppercase;letter-spacing:.08em;font-size:.76rem;color:var(--text-muted);font-weight:700}
   .hero-top,.board-grid,.lane-grid,.upload-grid,.chart-grid,.toolbar,.analytics-toolbar,.stats-grid,.insights-grid{display:grid;gap:16px}
@@ -18,7 +18,7 @@
   .stat-card{padding:16px 18px;border-radius:22px;min-height:0;display:flex;flex-direction:column;justify-content:space-between;background:linear-gradient(180deg,rgba(255,255,255,.035),rgba(255,255,255,.02));border:1px solid rgba(255,255,255,.07)}
   .stat-value{font-size:clamp(1.7rem,2.2vw,2.25rem);font-weight:800;margin-top:10px;line-height:1}
   .stat-value.compact{font-size:1.05rem;line-height:1.2}
-  .section-heading{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap;margin-bottom:18px}
+  .section-heading{display:flex;justify-content:space-between;align-items:flex-start;gap:14px;flex-wrap:wrap;margin-bottom:14px}
   .section-heading h2{margin-top:6px;font-size:clamp(1.75rem,2.6vw,2.4rem);letter-spacing:-.04em}
   .section-heading-copy{max-width:54ch;color:var(--text-secondary);font-size:1rem;line-height:1.75}
   .decision-hero{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(280px,.85fr);gap:18px;position:relative;z-index:1}
@@ -48,14 +48,14 @@
   .ranking-item-score{text-align:right}
   .ranking-item-score strong{display:block;font-size:1rem}
   .ranking-item-score span{font-size:.8rem;color:var(--text-secondary)}
-  .smart-tabs{display:flex;gap:10px;flex-wrap:wrap;position:relative;z-index:1}
+  .smart-tabs{display:flex;gap:10px;flex-wrap:wrap;position:sticky;top:14px;z-index:6;padding:10px 12px;border-radius:22px;background:rgba(8,10,16,.78);backdrop-filter:blur(14px);border:1px solid rgba(255,255,255,.06)}
   .smart-tab{min-height:46px;padding:10px 18px}
   .tab-panel{display:none}
   .tab-panel.active{display:grid}
-  .workspace-grid{grid-template-columns:1fr;align-items:start}
-  .control-stack{display:grid;gap:18px;grid-template-columns:repeat(2,minmax(0,1fr))}
-  .hero{padding:32px}
-  .panel{padding:30px}
+  .workspace-grid{grid-template-columns:minmax(0,1.35fr) minmax(320px,.8fr);align-items:start;gap:16px}
+  .control-stack{display:grid;gap:14px;grid-template-columns:1fr;position:sticky;top:92px}
+  .hero{padding:24px}
+  .panel{padding:22px}
   .smart-overview .hero{position:relative;overflow:hidden}
   .smart-overview .hero::after{content:"";position:absolute;right:-70px;top:-60px;width:220px;height:220px;border-radius:50%;background:radial-gradient(circle,rgba(116,34,230,.18),transparent 68%);pointer-events:none}
   .signal-board{padding:18px 20px}
@@ -94,12 +94,12 @@
   .chip.green,.pill.go{background:rgba(34,197,94,.14);color:#86efac}
   .chip.red,.pill.stop{background:rgba(248,113,113,.14);color:#fca5a5}
   .chip.blue,.pill.wait{background:rgba(116,34,230,.16);color:#d1b3ff}
-  .lane-grid,.upload-grid,.chart-grid,.insights-grid{grid-template-columns:repeat(auto-fit,minmax(240px,1fr))}
-  .upload-grid{grid-template-columns:1fr;gap:14px}
+  .lane-grid,.chart-grid,.insights-grid{grid-template-columns:repeat(auto-fit,minmax(240px,1fr))}
+  .upload-grid{grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px;max-height:calc(100vh - 290px);overflow:auto;padding-right:6px}
   .lane-upload-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
   .lane-card,.upload-card,.insight-card{padding:20px}
-  .upload-card{border-radius:24px;background:linear-gradient(180deg,rgba(255,255,255,.03),rgba(255,255,255,.018));border:1px solid rgba(255,255,255,.075);display:grid;grid-template-columns:minmax(220px,.7fr) minmax(0,1.3fr);align-items:center;gap:22px}
-  .upload-card h3{font-size:1.45rem;letter-spacing:-.03em;margin:6px 0 2px}
+  .upload-card{border-radius:22px;background:linear-gradient(180deg,rgba(255,255,255,.03),rgba(255,255,255,.018));border:1px solid rgba(255,255,255,.075);display:grid;grid-template-columns:1fr;align-items:start;gap:14px;padding:16px}
+  .upload-card h3{font-size:1.18rem;letter-spacing:-.03em;margin:4px 0 2px}
   .upload-card-copy{display:grid;gap:10px;align-content:start}
   .upload-card-media{display:grid;gap:12px;align-content:start}
   .lane-card-top{display:grid;grid-template-columns:72px 1fr;gap:14px;align-items:start}
@@ -130,6 +130,16 @@
   .dropzone .muted{font-size:.8rem;line-height:1.35}
   .selected-file{margin-top:4px;min-height:16px;color:#86efac;font-size:.8rem}
   .lane-video{width:100%;aspect-ratio:16/9;border-radius:14px;border:1px solid rgba(255,255,255,.1);background:#020617;margin-top:14px;object-fit:cover}
+  .live-camera-tools{display:grid;gap:10px}
+  .live-camera-select{width:100%}
+  .live-camera-preview{width:100%;aspect-ratio:16/9;border-radius:14px;border:1px solid rgba(255,255,255,.1);background:#020617;object-fit:cover}
+  .live-camera-note{font-size:.82rem;color:var(--text-secondary)}
+  .live-toolbar{display:grid;gap:10px;margin-top:18px}
+  .live-toolbar-meta{display:grid;gap:10px;margin-top:14px}
+  .compact-toolbar{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:end;margin-bottom:14px}
+  .lane-filter{width:100%}
+  .upload-summary{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+  .upload-summary .chip{background:rgba(255,255,255,.05);color:#dbe6f3}
   .lane-media-note{margin-top:8px;font-size:.88rem;color:var(--text-secondary)}
   .toolbar{grid-template-columns:1fr auto;align-items:center}
   .analytics-toolbar{grid-template-columns:auto;align-items:center}
@@ -139,7 +149,9 @@
   .status-message.info{display:block;background:rgba(116,34,230,.12);color:#d7c2ff;border-color:rgba(116,34,230,.24)}
   .status-message.error{display:block;background:rgba(127,29,29,.32);color:#fecaca}
   select,input[type="datetime-local"],input[type="number"]{min-height:48px;padding:12px 14px;border-radius:18px;border:1px solid var(--border-subtle);background:var(--bg-surface);color:var(--text-primary)}
-  .control-stack .btn{width:100%;min-height:50px;padding:12px 18px}
+  .control-stack .btn{width:100%;min-height:46px;padding:12px 18px}
+  .results-shell{display:grid;gap:14px;max-height:calc(100vh - 290px);overflow:auto;padding-right:6px}
+  .history-shell{display:grid;gap:16px;max-height:calc(100vh - 230px);overflow:auto;padding-right:6px}
   @media (min-width:1140px){
     .smart-overview{grid-template-columns:1fr}
     .smart-overview .hero{
@@ -154,7 +166,8 @@
       align-content:start;
     }
   }
-  @media (max-width:1040px){.hero-top,.toolbar,.analytics-toolbar,.stats-grid,.record-form,.workspace-grid,.smart-overview,.upload-card,.control-stack,.decision-hero,.decision-side-grid{grid-template-columns:1fr}.hero-actions{justify-content:flex-start}}
+  @media (max-width:1200px){.decision-hero{grid-template-columns:1fr}.control-stack{position:static}.upload-grid,.results-shell,.history-shell{max-height:none;overflow:visible}}
+  @media (max-width:1040px){.hero-top,.toolbar,.analytics-toolbar,.stats-grid,.record-form,.workspace-grid,.smart-overview,.upload-card,.control-stack,.decision-hero,.decision-side-grid,.compact-toolbar{grid-template-columns:1fr}.hero-actions{justify-content:flex-start}.smart-tabs{position:relative;top:0}}
   @media (max-width:760px){.lane-upload-actions{grid-template-columns:1fr}}
 </style>
 {% endblock %}
@@ -241,15 +254,17 @@
         </section>
 
         <section class="panel tab-panel" id="results-panel" data-tab-panel="results">
-          <div class="section-heading">
-            <div>
-              <div class="mini-label">Latest machine vision result</div>
-              <h2>Current lane detection</h2>
+          <div class="results-shell">
+            <div class="section-heading">
+              <div>
+                <div class="mini-label">Latest machine vision result</div>
+                <h2>Current lane detection</h2>
+              </div>
+              <div class="section-heading-copy">The newest photo or video analysis appears here so you can immediately review the signal recommendation.</div>
             </div>
-            <div class="section-heading-copy">The newest photo or video analysis appears here so you can immediately review the signal recommendation.</div>
+            <div class="lane-grid" id="lane-results"></div>
+            <div class="lane-grid" id="recommendations-list"></div>
           </div>
-          <div class="lane-grid" id="lane-results"></div>
-          <div class="lane-grid" id="recommendations-list" style="margin-top:16px"></div>
         </section>
       </section>
 
@@ -262,9 +277,18 @@
             </div>
             <div class="section-heading-copy">Add a recent image or short video for any lane you want to analyze. You can mix lanes in the same run.</div>
           </div>
-          <div class="upload-grid">
+          <div class="compact-toolbar">
+            <div>
+              <div class="mini-label" style="margin-bottom:6px">Find lane</div>
+              <input type="search" id="lane-filter-input" class="lane-filter" placeholder="Search by lane name or direction">
+            </div>
+            <div class="upload-summary" id="upload-summary">
+              <span class="chip blue">0 visible lanes</span>
+            </div>
+          </div>
+          <div class="upload-grid" id="upload-grid">
             {% for lane in intersection.lanes %}
-            <article class="upload-card">
+            <article class="upload-card" data-lane-card="{{ lane.id }}" data-lane-search="{{ (lane.name ~ ' ' ~ lane.direction)|lower }}">
               <div class="upload-card-copy">
                 <div class="mini-label">{{ lane.direction|title }} approach</div>
                 <h3>{{ lane.name }}</h3>
@@ -290,6 +314,19 @@
                 <div class="lane-media-note">Saved video for simulation is already available for this lane.</div>
                 <button type="button" class="btn btn-ghost" data-delete-lane-video="{{ lane.id }}" style="margin-top:10px">Remove saved video</button>
                 {% endif %}
+                <div class="live-camera-tools">
+                  <select class="live-camera-select" data-webcam-select="1" data-lane-id="{{ lane.id }}" {% if not lane.camera.status %}disabled{% endif %}>
+                    <option value="">{% if lane.camera.status %}Choose live camera{% else %}Camera disabled{% endif %}</option>
+                  </select>
+                  <video class="live-camera-preview" data-webcam="1" data-lane-id="{{ lane.id }}" autoplay playsinline muted {% if not lane.camera.status %}style="opacity:.4"{% endif %}></video>
+                  <div class="live-camera-note">
+                    {% if lane.camera.status %}
+                    Live preview for repeated AI sampling on this lane.
+                    {% else %}
+                    Enable this lane camera from Live Monitor or Intersection settings before using live AI.
+                    {% endif %}
+                  </div>
+                </div>
               </div>
             </article>
             {% endfor %}
@@ -329,34 +366,54 @@
               <a href="{{ url_for('intersection_monitor', intersection_id=intersection.id) }}" class="btn btn-ghost"><span class="icon-inline"><svg viewBox="0 0 24 24"><use href="#icon-monitor"/></svg></span>Live monitor</a>
             </div>
           </section>
+
+          <section class="panel">
+            <div class="mini-label">Live inference</div>
+            <h2 style="margin-top:6px">Camera-driven signal updates</h2>
+            <p class="panel-copy">Start lane previews, sample compressed frames every few seconds, and keep the signal recommendation updating from live feeds.</p>
+            <div class="live-toolbar">
+              <button type="button" class="btn btn-primary" id="start-live-analysis-btn">Start live AI</button>
+              <button type="button" class="btn btn-ghost" id="stop-live-analysis-btn">Stop live AI</button>
+            </div>
+            <div class="live-toolbar-meta">
+              <div>
+                <div class="mini-label" style="margin-bottom:6px">Sampling interval (seconds)</div>
+                <input type="number" id="live-interval-seconds" min="2" max="30" value="4">
+              </div>
+              <div class="live-camera-note" id="live-analysis-meta">Idle. Starting live mode will capture one JPEG snapshot per lane on each interval instead of uploading full videos.</div>
+            </div>
+          </section>
         </aside>
       </section>
 
       <section class="panel tab-panel" data-tab-panel="history">
-        <div class="section-heading">
-          <div>
-            <div class="mini-label">Historical analytics</div>
-            <h2>Traffic by date and time</h2>
+        <div class="history-shell">
+          <div class="section-heading">
+            <div>
+              <div class="mini-label">Historical analytics</div>
+              <h2>Traffic by date and time</h2>
+            </div>
+            <div class="section-heading-copy" id="analytics-copy">{% if analytics.sample_count %}Showing {{ analytics.source }} for this intersection.{% else %}No history yet for this intersection.{% endif %}</div>
           </div>
-          <div class="section-heading-copy" id="analytics-copy">{% if analytics.sample_count %}Showing {{ analytics.source }} for this intersection.{% else %}No history yet for this intersection.{% endif %}</div>
+          <div class="analytics-toolbar">
+            <select id="history-range"><option value="3">Last 3 days</option><option value="7" selected>Last 7 days</option><option value="14">Last 14 days</option><option value="30">Last 30 days</option></select>
+          </div>
+          <div class="lane-grid" id="overview-cards"></div>
+          <div class="chart-grid">
+            <article class="chart-card"><div class="mini-label">Hourly demand</div><h3>Which time of day needs green priority?</h3><div class="muted">Average total vehicles seen during each hourly window.</div><div id="hourly-chart"></div></article>
+            <article class="chart-card"><div class="mini-label">Daily pressure</div><h3>Intersection traffic over dates</h3><div class="muted">Average total vehicles per sampled date.</div><div id="daily-chart"></div></article>
+            <article class="chart-card"><div class="mini-label">Lane comparison</div><h3>Overall lane load</h3><div class="muted">Average vehicles for each approach across the selected period.</div><div id="lane-chart"></div></article>
+          </div>
+          <div class="insights-grid" id="insights-grid"></div>
+          <div class="records-list" id="records-list"></div>
         </div>
-        <div class="analytics-toolbar">
-          <select id="history-range"><option value="3">Last 3 days</option><option value="7" selected>Last 7 days</option><option value="14">Last 14 days</option><option value="30">Last 30 days</option></select>
-        </div>
-        <div class="lane-grid" id="overview-cards" style="margin-top:18px"></div>
-        <div class="chart-grid" style="margin-top:16px">
-          <article class="chart-card"><div class="mini-label">Hourly demand</div><h3>Which time of day needs green priority?</h3><div class="muted">Average total vehicles seen during each hourly window.</div><div id="hourly-chart"></div></article>
-          <article class="chart-card"><div class="mini-label">Daily pressure</div><h3>Intersection traffic over dates</h3><div class="muted">Average total vehicles per sampled date.</div><div id="daily-chart"></div></article>
-          <article class="chart-card"><div class="mini-label">Lane comparison</div><h3>Overall lane load</h3><div class="muted">Average vehicles for each approach across the selected period.</div><div id="lane-chart"></div></article>
-        </div>
-        <div class="insights-grid" id="insights-grid" style="margin-top:16px"></div>
-        <div class="records-list" id="records-list"></div>
       </section>
     </section>
   </div>
 </main>
 {% endblock %}
 {% block extra_js %}
+<script src="{{ url_for('static', filename='js/webcam.js') }}"></script>
 <script>
   (function () {
     const intersection = {{ intersection | tojson }};
@@ -378,6 +435,8 @@
     const overviewCards = document.getElementById("overview-cards");
     const insightsGrid = document.getElementById("insights-grid");
     const recordsList = document.getElementById("records-list");
+    const laneFilterInput = document.getElementById("lane-filter-input");
+    const uploadSummary = document.getElementById("upload-summary");
     const tabButtons = Array.from(document.querySelectorAll("[data-tab-target]"));
     const tabPanels = Array.from(document.querySelectorAll("[data-tab-panel]"));
     const decisionTitle = document.getElementById("decision-title");
@@ -391,10 +450,23 @@
     const decisionConfidenceBar = document.getElementById("decision-confidence-bar");
     const decisionConfidenceNote = document.getElementById("decision-confidence-note");
     const decisionRankingList = document.getElementById("decision-ranking-list");
+    const startLiveAnalysisBtn = document.getElementById("start-live-analysis-btn");
+    const stopLiveAnalysisBtn = document.getElementById("stop-live-analysis-btn");
+    const liveIntervalInput = document.getElementById("live-interval-seconds");
+    const liveAnalysisMeta = document.getElementById("live-analysis-meta");
+    const storageKeyPrefix = `traffix:webcam:${intersection.id}:smart-signal`;
+    const liveCanvas = document.createElement("canvas");
+    let liveAnalysisTimer = null;
+    let liveAnalysisInFlight = false;
+    let liveTickCount = 0;
     function setStatus(message, tone) {
       statusMessage.textContent = message || "";
       statusMessage.className = "status-message";
       if (message) statusMessage.classList.add(tone || "info");
+    }
+
+    function setLiveMeta(message) {
+      if (liveAnalysisMeta) liveAnalysisMeta.textContent = message || "";
     }
 
     function setActiveTab(tabName) {
@@ -416,6 +488,21 @@
       const now = new Date();
       now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
       return now.toISOString().slice(0, 16);
+    }
+
+    function updateLaneVisibility() {
+      const query = String(laneFilterInput?.value || "").trim().toLowerCase();
+      const cards = Array.from(document.querySelectorAll("[data-lane-card]"));
+      let visibleCount = 0;
+      cards.forEach((card) => {
+        const haystack = card.getAttribute("data-lane-search") || "";
+        const matches = !query || haystack.includes(query);
+        card.style.display = matches ? "" : "none";
+        if (matches) visibleCount += 1;
+      });
+      if (uploadSummary) {
+        uploadSummary.innerHTML = `<span class="chip blue">${visibleCount} visible lane${visibleCount === 1 ? "" : "s"}</span><span class="chip ${query ? "red" : "green"}">${query ? `Filter: ${escapeHtml(query)}` : "All lanes"}</span>`;
+      }
     }
 
     function bindUploads() {
@@ -502,7 +589,12 @@
         const densityClass = `density-${String(result.density_level || "low").toLowerCase()}`;
         const stateClass = decision?.go_direction === direction ? "go" : "stop";
         const stateText = decision?.go_direction === direction ? "Green next" : "Hold";
-        return `<article class="lane-card ${stateClass}"><div class="lane-card-head"><div><div class="mini-label">${escapeHtml(direction)}</div><h3>${escapeHtml(result.lane_name)}</h3></div><span class="pill ${stateClass}">${stateText}</span></div><span class="density-badge ${densityClass}">${escapeHtml(result.density_level)}</span><div class="metric"><strong>Vehicles detected:</strong> ${result.vehicle_count}</div><div class="metric"><strong>Suggested green time:</strong> ${greenTime}s</div><div class="metric"><strong>Objects tracked:</strong> ${(result.detections || []).length}</div></article>`;
+        const isVideo = typeof result.max_vehicles_in_frame !== "undefined";
+        const isMissingUpload = result.analysis_status === "not_uploaded";
+        const detailMetrics = isVideo
+          ? `<div class="metric"><strong>Peak vehicles in frame:</strong> ${result.max_vehicles_in_frame ?? 0}</div><div class="metric"><strong>Representative lane load:</strong> ${result.vehicle_count}</div><div class="metric"><strong>Frame average:</strong> ${result.avg_vehicles_per_frame ?? 0}</div>${isMissingUpload ? `<div class="metric"><strong>Status:</strong> No video uploaded for this lane in the current run</div>` : ""}`
+          : `<div class="metric"><strong>Objects tracked:</strong> ${(result.detections || []).length}</div>`;
+        return `<article class="lane-card ${stateClass}"><div class="lane-card-head"><div><div class="mini-label">${escapeHtml(direction)}</div><h3>${escapeHtml(result.lane_name)}</h3></div><span class="pill ${stateClass}">${stateText}</span></div><span class="density-badge ${densityClass}">${escapeHtml(result.density_level)}</span><div class="metric"><strong>Vehicles detected:</strong> ${result.vehicle_count}</div><div class="metric"><strong>Suggested green time:</strong> ${greenTime}s</div>${detailMetrics}</article>`;
       }).join("");
     }
 
@@ -592,7 +684,8 @@
     }
 
     async function analyze() {
-      if (!Object.keys(selectedFiles).length) {
+      const filesToUpload = collectSelectedFiles("[data-lane-file]", "data-lane-file", selectedFiles);
+      if (!Object.keys(filesToUpload).length) {
         setStatus("Upload at least one lane image before running the AI analysis.", "error");
         return;
       }
@@ -601,7 +694,7 @@
       const formData = new FormData();
       formData.append("analysis_timestamp", analysisTimestampInput?.value || defaultAnalysisTimestamp());
       formData.append("event_duration_minutes", eventDurationInput?.value || "15");
-      Object.entries(selectedFiles).forEach(([laneId, file]) => formData.append(`images[${laneId}]`, file));
+      Object.entries(filesToUpload).forEach(([laneId, file]) => formData.append(`images[${laneId}]`, file));
       try {
         const response = await fetch(`/api/intersection/${intersection.id}/smart-signal/analyze`, { method: "POST", body: formData });
         const payload = await response.json();
@@ -620,7 +713,8 @@
     }
 
     async function analyzeVideos() {
-      if (!Object.keys(selectedVideos).length) {
+      const videosToUpload = collectSelectedFiles("[data-lane-video-file]", "data-lane-video-file", selectedVideos);
+      if (!Object.keys(videosToUpload).length) {
         setStatus("Upload at least one lane video before running the traffic simulation.", "error");
         return;
       }
@@ -629,7 +723,7 @@
       const formData = new FormData();
       formData.append("analysis_timestamp", analysisTimestampInput?.value || defaultAnalysisTimestamp());
       formData.append("event_duration_minutes", eventDurationInput?.value || "15");
-      Object.entries(selectedVideos).forEach(([laneId, file]) => formData.append(`videos[${laneId}]`, file));
+      Object.entries(videosToUpload).forEach(([laneId, file]) => formData.append(`videos[${laneId}]`, file));
       try {
         const response = await fetch(`/api/intersection/${intersection.id}/smart-signal/analyze-video`, { method: "POST", body: formData });
         const payload = await response.json();
@@ -645,6 +739,132 @@
       } finally {
         analyzeVideoBtn.disabled = false;
       }
+    }
+
+    async function startLiveFeeds() {
+      await window.TraffixWebcam?.attachWebcamToVideos({
+        videoSelector: "video[data-webcam='1']",
+        selectSelector: "select[data-webcam-select='1']",
+        statusSelector: "#status-message",
+        constraints: {
+          video: {
+            width: { ideal: 1280 },
+            height: { ideal: 720 },
+            frameRate: { ideal: 15, max: 24 }
+          },
+          audio: false
+        },
+        storageKeyPrefix
+      });
+    }
+
+    function collectSelectedFiles(inputSelector, attributeName, cache) {
+      const files = { ...(cache || {}) };
+      document.querySelectorAll(inputSelector).forEach((input) => {
+        const laneId = input.getAttribute(attributeName);
+        const [file] = Array.from(input.files || []);
+        if (laneId && file) files[laneId] = file;
+      });
+      return files;
+    }
+
+    function stopLiveFeeds() {
+      window.TraffixWebcam?.stopStream();
+      document.querySelectorAll("video[data-webcam='1']").forEach((video) => {
+        video.srcObject = null;
+      });
+    }
+
+    function buildLiveFramePayload() {
+      const frames = {};
+      document.querySelectorAll("video[data-webcam='1']").forEach((video) => {
+        const laneId = video.getAttribute("data-lane-id");
+        if (!laneId || video.readyState < 2 || !video.videoWidth || !video.videoHeight) return;
+        const width = Math.min(640, video.videoWidth);
+        const height = Math.max(1, Math.round((video.videoHeight / video.videoWidth) * width));
+        liveCanvas.width = width;
+        liveCanvas.height = height;
+        const context = liveCanvas.getContext("2d", { alpha: false });
+        context.drawImage(video, 0, 0, width, height);
+        frames[laneId] = liveCanvas.toDataURL("image/jpeg", 0.72);
+      });
+      return frames;
+    }
+
+    async function runLiveAnalysisTick() {
+      if (liveAnalysisInFlight) return;
+
+      const frames = buildLiveFramePayload();
+      const laneIds = Object.keys(frames);
+      if (!laneIds.length) {
+        setLiveMeta("Waiting for usable live frames. Check camera permissions and lane device selection.");
+        return;
+      }
+
+      liveAnalysisInFlight = true;
+      liveTickCount += 1;
+      const startedAt = performance.now();
+      try {
+        const response = await fetch(`/api/intersection/${intersection.id}/smart-signal/analyze-live`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Accept": "application/json"
+          },
+          body: JSON.stringify({
+            analysis_timestamp: new Date().toISOString().slice(0, 19),
+            event_duration_minutes: 1,
+            persist: true,
+            frames
+          })
+        });
+        const payload = await response.json();
+        if (!response.ok) throw new Error(payload.error || "Live analysis failed.");
+        renderLaneResults(payload.results || {}, payload.optimization || {}, payload.decision || {});
+        renderRecommendations(payload);
+        renderDecisionSummary(payload);
+        if (payload.analytics) renderOverview(payload.analytics);
+        setActiveTab("results");
+        const latency = Math.round(performance.now() - startedAt);
+        setStatus(`Live AI updated ${laneIds.length} lane(s) in ${latency} ms.`, "info");
+        setLiveMeta(payload.persisted_to_history
+          ? `Live mode active. Sample ${liveTickCount} was saved to history for trend tracking.`
+          : `Live mode active. Sample ${liveTickCount} processed from ${laneIds.length} live lane feed(s).`);
+      } catch (error) {
+        setStatus(error.message || "Could not analyze live camera frames.", "error");
+        setLiveMeta("Live mode hit an analysis error. Check the connected cameras and try again.");
+      } finally {
+        liveAnalysisInFlight = false;
+      }
+    }
+
+    async function startLiveAnalysis() {
+      const intervalSeconds = Math.max(2, Math.min(30, Number(liveIntervalInput?.value || 4)));
+      if (liveIntervalInput) liveIntervalInput.value = String(intervalSeconds);
+      startLiveAnalysisBtn.disabled = true;
+      try {
+        await startLiveFeeds();
+        await runLiveAnalysisTick();
+        if (liveAnalysisTimer) window.clearInterval(liveAnalysisTimer);
+        liveAnalysisTimer = window.setInterval(runLiveAnalysisTick, intervalSeconds * 1000);
+        setLiveMeta(`Live mode is running. The backend receives one compressed frame per lane every ${intervalSeconds} second(s).`);
+      } catch (error) {
+        setStatus(error.message || "Could not start live AI.", "error");
+        setLiveMeta("Live mode is idle because the lane cameras could not be started.");
+      } finally {
+        startLiveAnalysisBtn.disabled = false;
+      }
+    }
+
+    function stopLiveAnalysis() {
+      if (liveAnalysisTimer) {
+        window.clearInterval(liveAnalysisTimer);
+        liveAnalysisTimer = null;
+      }
+      liveAnalysisInFlight = false;
+      stopLiveFeeds();
+      setLiveMeta("Live mode stopped. Camera previews and repeated inference are no longer running.");
+      setStatus("Live camera analysis stopped.", "info");
     }
 
     async function removeLaneVideo(laneId) {
@@ -692,6 +912,7 @@
     if (analysisTimestampInput && !analysisTimestampInput.value) {
       analysisTimestampInput.value = defaultAnalysisTimestamp();
     }
+    updateLaneVisibility();
     renderDecisionSummary({});
     renderOverview(initialAnalytics || {});
     tabButtons.forEach((button) => {
@@ -699,6 +920,9 @@
     });
     analyzeBtn.addEventListener("click", analyze);
     analyzeVideoBtn.addEventListener("click", analyzeVideos);
+    laneFilterInput?.addEventListener("input", updateLaneVisibility);
+    startLiveAnalysisBtn?.addEventListener("click", startLiveAnalysis);
+    stopLiveAnalysisBtn?.addEventListener("click", stopLiveAnalysis);
     deletePhotoAnalysesBtn.addEventListener("click", async () => {
       deletePhotoAnalysesBtn.disabled = true;
       try {
@@ -741,6 +965,7 @@
       }
     });
     historyRange.addEventListener("change", () => refreshAnalytics().catch((error) => setStatus(error.message || "Could not refresh history.", "error")));
+    window.addEventListener("beforeunload", stopLiveAnalysis);
   })();
 </script>
 {% endblock %}
