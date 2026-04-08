@@ -2,173 +2,157 @@
 {% block title %}{{ intersection.name }} Signal Control - Traffix{% endblock %}
 {% block extra_css %}
 <style>
-  .smart-layout{display:grid;gap:18px;position:relative}
-  .smart-layout::before{content:"";position:absolute;inset:12px 0 auto 0;height:280px;background:radial-gradient(circle at top left,rgba(116,34,230,.12),transparent 48%),radial-gradient(circle at top right,rgba(56,189,248,.08),transparent 34%);pointer-events:none;filter:blur(8px)}
-  .smart-overview,.workspace-grid{display:grid;gap:18px;position:relative;z-index:1}
-  .smart-grid,.board-grid,.lane-grid,.upload-grid,.chart-grid,.toolbar,.analytics-toolbar,.stats-grid,.insights-grid{display:grid;gap:16px}
-  .hero,.signal-board,.panel,.chart-card{padding:22px}
-  .hero,.signal-board,.panel,.chart-card,.lane-card,.upload-card,.insight-card,.record-item,.stat-card{background:linear-gradient(180deg,rgba(24,24,31,.94),rgba(12,12,17,.96));border:1px solid rgba(255,255,255,0.08);border-radius:30px;box-shadow:0 22px 60px rgba(0,0,0,.28), inset 0 1px 0 rgba(255,255,255,.04)}
-  .eyebrow,.mini-label{text-transform:uppercase;letter-spacing:.08em;font-size:.76rem;color:var(--text-muted);font-weight:700}
-  .hero-top,.board-grid,.lane-grid,.upload-grid,.chart-grid,.toolbar,.analytics-toolbar,.stats-grid,.insights-grid{display:grid;gap:16px}
+  .smart-layout{display:grid;gap:20px}
+  .smart-overview,.workspace-grid{display:grid;gap:16px}
+  .smart-grid,.board-grid,.lane-grid,.upload-grid,.chart-grid,.toolbar,.analytics-toolbar,.stats-grid,.insights-grid{display:grid;gap:14px}
+  .hero,.signal-board,.panel,.chart-card{padding:20px}
+  .hero,.signal-board,.panel,.chart-card,.lane-card,.upload-card,.insight-card,.record-item,.stat-card{background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-card)}
+  .eyebrow,.mini-label{text-transform:uppercase;letter-spacing:.06em;font-size:.72rem;color:var(--text-muted);font-weight:600}
+  .hero-top,.board-grid,.lane-grid,.upload-grid,.chart-grid,.toolbar,.analytics-toolbar,.stats-grid,.insights-grid{display:grid;gap:14px}
   .hero-top{grid-template-columns:1.15fr .85fr}
-  .hero-copy h1{font-size:clamp(2.2rem,4vw,4rem);line-height:.95;margin:10px 0 12px;letter-spacing:-.05em}
-  .hero-actions{display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap}
-  .panel-copy,.muted,.metric{color:var(--text-secondary)}
-  .stats-grid{grid-template-columns:repeat(4,minmax(0,1fr))}
-  .stat-card{padding:16px 18px;border-radius:22px;min-height:0;display:flex;flex-direction:column;justify-content:space-between;background:linear-gradient(180deg,rgba(255,255,255,.035),rgba(255,255,255,.02));border:1px solid rgba(255,255,255,.07)}
-  .stat-value{font-size:clamp(1.7rem,2.2vw,2.25rem);font-weight:800;margin-top:10px;line-height:1}
-  .stat-value.compact{font-size:1.05rem;line-height:1.2}
-  .section-heading{display:flex;justify-content:space-between;align-items:flex-start;gap:14px;flex-wrap:wrap;margin-bottom:14px}
-  .section-heading h2{margin-top:6px;font-size:clamp(1.75rem,2.6vw,2.4rem);letter-spacing:-.04em}
-  .section-heading-copy{max-width:54ch;color:var(--text-secondary);font-size:1rem;line-height:1.75}
-  .decision-hero{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(280px,.85fr);gap:18px;position:relative;z-index:1}
-  .decision-main,.decision-side{padding:26px 28px;border-radius:30px;background:linear-gradient(180deg,rgba(24,24,31,.96),rgba(12,12,17,.98));border:1px solid rgba(255,255,255,.08);box-shadow:0 22px 60px rgba(0,0,0,.28), inset 0 1px 0 rgba(255,255,255,.04)}
-  .decision-main{position:relative;overflow:hidden}
-  .decision-main::after{content:"";position:absolute;right:-40px;top:-60px;width:180px;height:180px;border-radius:50%;background:radial-gradient(circle,rgba(116,34,230,.22),transparent 68%);pointer-events:none}
-  .decision-title{font-size:clamp(2rem,3.6vw,3rem);line-height:1;letter-spacing:-.05em;margin:10px 0}
-  .decision-copy{max-width:60ch;color:var(--text-secondary);font-size:1rem;line-height:1.7}
-  .decision-chips{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}
-  .decision-side-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
-  .decision-metric{padding:14px 16px;border-radius:20px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06)}
-  .decision-metric-label{text-transform:uppercase;letter-spacing:.08em;font-size:.72rem;color:var(--text-muted);font-weight:700}
-  .decision-metric-value{margin-top:8px;font-size:1.2rem;font-weight:700}
-  .decision-confidence,.decision-ranking{margin-top:14px;padding:16px;border-radius:20px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06)}
-  .decision-confidence-copy{display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:10px}
-  .decision-confidence-label{font-size:.82rem;color:var(--text-secondary)}
-  .decision-confidence-value{font-size:1rem;font-weight:700}
-  .confidence-bar{width:100%;height:10px;border-radius:999px;background:rgba(255,255,255,.08);overflow:hidden}
-  .confidence-bar span{display:block;height:100%;border-radius:inherit;background:linear-gradient(90deg,#22c55e,#38bdf8);width:0%}
-  .confidence-note{margin-top:10px;color:var(--text-secondary);font-size:.86rem;line-height:1.55}
-  .ranking-list{display:grid;gap:10px}
-  .ranking-item{display:flex;justify-content:space-between;gap:12px;align-items:center;padding:12px 14px;border-radius:16px;background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.05)}
-  .ranking-item.is-active{border-color:rgba(34,197,94,.28);background:rgba(34,197,94,.08)}
+  .hero-copy h1{font-size:clamp(1.75rem,3vw,2.5rem);line-height:1.1;margin:8px 0 10px;letter-spacing:-.03em}
+  .hero-actions{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}
+  .panel-copy,.muted,.metric{color:var(--text-secondary);font-size:.875rem}
+  .stats-grid{grid-template-columns:repeat(auto-fit,minmax(140px,1fr))}
+  .stat-card{padding:14px 16px;border-radius:var(--radius-sm);min-height:0;display:flex;flex-direction:column;justify-content:space-between;background:var(--surface-2);border:1px solid var(--border-subtle)}
+  .stat-value{font-size:1.25rem;font-weight:700;margin-top:8px;line-height:1.1}
+  .stat-value.compact{font-size:.95rem;line-height:1.2}
+  .section-heading{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+  .section-heading h2{margin-top:4px;font-size:1.25rem;letter-spacing:-.02em;font-weight:700}
+  .section-heading-copy{max-width:50ch;color:var(--text-secondary);font-size:.875rem;line-height:1.6}
+  .decision-hero{display:grid;grid-template-columns:1fr;gap:16px}
+  .decision-main,.decision-side{padding:20px;border-radius:var(--radius-card);background:var(--bg-surface);border:1px solid var(--border-subtle)}
+  .decision-title{font-size:1.5rem;line-height:1.1;letter-spacing:-.03em;margin:8px 0;font-weight:700}
+  .decision-copy{max-width:60ch;color:var(--text-secondary);font-size:.875rem;line-height:1.6}
+  .decision-chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+  .decision-side-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+  .decision-metric{padding:12px 14px;border-radius:var(--radius-sm);background:var(--surface-2);border:1px solid var(--border-subtle)}
+  .decision-metric-label{text-transform:uppercase;letter-spacing:.06em;font-size:.68rem;color:var(--text-muted);font-weight:600}
+  .decision-metric-value{margin-top:6px;font-size:1rem;font-weight:700}
+  .decision-confidence,.decision-ranking{margin-top:12px;padding:14px;border-radius:var(--radius-sm);background:var(--surface-2);border:1px solid var(--border-subtle)}
+  .decision-confidence-copy{display:flex;justify-content:space-between;gap:10px;align-items:center;margin-bottom:8px}
+  .decision-confidence-label{font-size:.8rem;color:var(--text-secondary)}
+  .decision-confidence-value{font-size:.9rem;font-weight:700}
+  .confidence-bar{width:100%;height:6px;border-radius:999px;background:var(--surface-3);overflow:hidden}
+  .confidence-bar span{display:block;height:100%;border-radius:inherit;background:var(--success);width:0%}
+  .confidence-note{margin-top:8px;color:var(--text-secondary);font-size:.8rem;line-height:1.5}
+  .ranking-list{display:grid;gap:8px}
+  .ranking-item{display:flex;justify-content:space-between;gap:10px;align-items:center;padding:10px 12px;border-radius:var(--radius-sm);background:var(--surface-1);border:1px solid var(--border-subtle)}
+  .ranking-item.is-active{border-color:rgba(34,197,94,.3);background:rgba(34,197,94,.08)}
   .ranking-item-main{display:grid;gap:2px}
-  .ranking-item-title{font-weight:700}
-  .ranking-item-meta{font-size:.82rem;color:var(--text-secondary)}
+  .ranking-item-title{font-weight:600;font-size:.9rem}
+  .ranking-item-meta{font-size:.75rem;color:var(--text-secondary)}
   .ranking-item-score{text-align:right}
-  .ranking-item-score strong{display:block;font-size:1rem}
-  .ranking-item-score span{font-size:.8rem;color:var(--text-secondary)}
-  .smart-tabs{display:flex;gap:10px;flex-wrap:wrap;position:sticky;top:14px;z-index:6;padding:10px 12px;border-radius:22px;background:rgba(8,10,16,.78);backdrop-filter:blur(14px);border:1px solid rgba(255,255,255,.06)}
-  .smart-tab{min-height:46px;padding:10px 18px}
+  .ranking-item-score strong{display:block;font-size:.9rem}
+  .ranking-item-score span{font-size:.75rem;color:var(--text-secondary)}
+  .smart-tabs{display:flex;gap:8px;flex-wrap:wrap;position:sticky;top:12px;z-index:6;padding:8px 10px;border-radius:var(--radius-sm);background:var(--surface-glass);backdrop-filter:blur(12px);border:1px solid var(--border-subtle)}
+  .smart-tab{min-height:36px;padding:8px 14px;font-size:.8125rem}
   .tab-panel{display:none}
   .tab-panel.active{display:grid}
-  .workspace-grid{grid-template-columns:minmax(0,1.35fr) minmax(320px,.8fr);align-items:start;gap:16px}
-  .control-stack{display:grid;gap:14px;grid-template-columns:1fr;position:sticky;top:92px}
-  .hero{padding:24px}
-  .panel{padding:22px}
-  .smart-overview .hero{position:relative;overflow:hidden}
-  .smart-overview .hero::after{content:"";position:absolute;right:-70px;top:-60px;width:220px;height:220px;border-radius:50%;background:radial-gradient(circle,rgba(116,34,230,.18),transparent 68%);pointer-events:none}
-  .signal-board{padding:18px 20px}
-  .signal-board-header{display:flex;justify-content:space-between;gap:16px;align-items:flex-start;flex-wrap:wrap;margin-bottom:16px}
-  .signal-board-copy{max-width:62ch;color:var(--text-secondary)}
-  .signal-monitor-grid{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(260px,1fr))}
-  .signal-monitor-tile{position:relative;min-height:0;aspect-ratio:16/10;border-radius:22px;overflow:hidden;border:1px solid rgba(148,163,184,.12);background:linear-gradient(180deg,rgba(7,10,16,.94),rgba(2,6,12,.98)),repeating-linear-gradient(-45deg,rgba(255,255,255,.018) 0,rgba(255,255,255,.018) 10px,transparent 10px,transparent 22px);box-shadow:0 20px 50px rgba(0,0,0,.24)}
-  .signal-tile-header{position:absolute;top:0;left:0;right:0;z-index:2;display:flex;justify-content:space-between;align-items:flex-start;gap:12px;padding:16px 16px 28px;background:linear-gradient(180deg,rgba(4,6,9,.9) 0%,rgba(4,6,9,.45) 72%,rgba(4,6,9,0) 100%)}
-  .signal-tile-title{font-size:1.02rem;font-weight:700;letter-spacing:-.02em}
-  .signal-tile-meta{color:rgba(255,255,255,.56);font-size:.74rem;text-transform:uppercase;letter-spacing:.06em;margin-top:2px}
-  .signal-tile-feed{position:relative;min-height:0;height:100%;overflow:hidden;display:grid;place-items:center;background:radial-gradient(circle at center,rgba(15,23,42,.38),rgba(2,6,12,.98)),#07090d}
-  .signal-tile-video{width:100%;height:100%;object-fit:cover;display:block;background:#05070b}
-  .signal-tile-overlay{position:absolute;inset:0;display:grid;place-items:center;padding:24px;background:linear-gradient(180deg,rgba(2,6,12,.12),rgba(2,6,12,.68))}
-  .signal-visual{display:grid;justify-items:center;align-content:center;gap:12px}
-  .signal-tile-footer{position:absolute;left:0;right:0;bottom:0;z-index:2;padding:38px 16px 16px;background:linear-gradient(180deg,rgba(4,6,9,0) 0%,rgba(4,6,9,.58) 35%,rgba(4,6,9,.92) 100%)}
-  .signal-tile-stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
-  .signal-tile-stat{padding:9px 10px;border-radius:14px;background:rgba(15,23,42,.72);border:1px solid rgba(148,163,184,.18)}
-  .signal-tile-stat-label{font-size:.66rem;text-transform:uppercase;letter-spacing:.08em;color:rgba(255,255,255,.5)}
-  .signal-tile-stat-value{margin-top:4px;font-size:.92rem;font-weight:700;color:#f8fafc}
-  .signal-head{width:92px;padding:10px;border-radius:22px;background:linear-gradient(180deg,#17181d,#0c0d11);border:1px solid rgba(255,255,255,0.1);display:grid;gap:8px}
-  .signal-lamp{width:52px;height:52px;border-radius:50%;margin:0 auto;opacity:.25;transition:opacity .18s ease,transform .18s ease;transform:scale(.96)}
+  .workspace-grid{grid-template-columns:minmax(0,1.4fr) minmax(280px,.6fr);align-items:start;gap:14px}
+  .control-stack{display:grid;gap:12px;grid-template-columns:1fr;position:sticky;top:80px}
+  .hero{padding:20px}
+  .panel{padding:18px}
+  .signal-board{padding:16px}
+  .signal-board-header{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap;margin-bottom:14px}
+  .signal-board-copy{max-width:55ch;color:var(--text-secondary);font-size:.875rem}
+  .signal-monitor-grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(240px,1fr))}
+  .signal-monitor-tile{position:relative;min-height:0;aspect-ratio:16/10;border-radius:var(--radius-sm);overflow:hidden;border:1px solid var(--border-subtle);background:var(--surface-1)}
+  .signal-tile-header{position:absolute;top:0;left:0;right:0;z-index:2;display:flex;justify-content:space-between;align-items:flex-start;gap:10px;padding:12px 12px 20px;background:linear-gradient(180deg,rgba(0,0,0,.7) 0%,transparent 100%)}
+  .signal-tile-title{font-size:.9rem;font-weight:600}
+  .signal-tile-meta{color:var(--text-muted);font-size:.7rem;text-transform:uppercase;letter-spacing:.04em;margin-top:2px}
+  .signal-tile-feed{position:relative;min-height:0;height:100%;overflow:hidden;display:grid;place-items:center;background:var(--surface-1)}
+  .signal-tile-video{width:100%;height:100%;object-fit:cover;display:block;background:var(--bg-main)}
+  .signal-tile-overlay{position:absolute;inset:0;display:grid;place-items:center;padding:16px;background:rgba(0,0,0,.4)}
+  .signal-visual{display:grid;justify-items:center;align-content:center;gap:10px}
+  .signal-tile-footer{position:absolute;left:0;right:0;bottom:0;z-index:2;padding:24px 12px 12px;background:linear-gradient(180deg,transparent 0%,rgba(0,0,0,.7) 100%)}
+  .signal-tile-stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+  .signal-tile-stat{padding:8px;border-radius:var(--radius-sm);background:rgba(0,0,0,.5);border:1px solid var(--border-subtle)}
+  .signal-tile-stat-label{font-size:.65rem;text-transform:uppercase;letter-spacing:.04em;color:var(--text-muted)}
+  .signal-tile-stat-value{margin-top:2px;font-size:.85rem;font-weight:600}
+  .signal-head{width:72px;padding:8px;border-radius:var(--radius-sm);background:var(--surface-2);border:1px solid var(--border-subtle);display:grid;gap:6px}
+  .signal-lamp{width:40px;height:40px;border-radius:50%;margin:0 auto;opacity:.2;transition:opacity .15s ease}
   .signal-lamp.red{background:radial-gradient(circle at 35% 30%,#fca5a5,#991b1b 68%)}
   .signal-lamp.yellow{background:radial-gradient(circle at 35% 30%,#fde68a,#a16207 68%)}
   .signal-lamp.green{background:radial-gradient(circle at 35% 30%,#86efac,#166534 68%)}
-  .signal-lamp.active{opacity:1;transform:scale(1)}
-  .signal-post{width:12px;height:80px;border-radius:999px;background:linear-gradient(180deg,#334155,#0f172a)}
+  .signal-lamp.active{opacity:1}
+  .signal-post{width:10px;height:60px;border-radius:999px;background:var(--surface-3)}
   .signal-phase{text-align:center}
-  .signal-phase strong{display:block;font-size:1rem;margin-top:4px}
-  .signal-phase small{display:block;color:rgba(255,255,255,.62);margin-top:4px}
-  .signal-details{display:grid;gap:14px}
-  .decision-summary{padding:18px;border-radius:20px;background:rgba(116,34,230,.08);border:1px solid rgba(116,34,230,.18)}
-  .decision-summary h3{font-size:2rem;margin:6px 0 8px}
-  .decision-meta{display:flex;gap:10px;flex-wrap:wrap}
-  .chip,.pill,.density-badge{display:inline-flex;border-radius:999px;font-weight:700}
-  .chip{padding:7px 12px;font-size:.82rem}
-  .chip.green,.pill.go{background:rgba(34,197,94,.14);color:#86efac}
-  .chip.red,.pill.stop{background:rgba(248,113,113,.14);color:#fca5a5}
-  .chip.blue,.pill.wait{background:rgba(116,34,230,.16);color:#d1b3ff}
-  .lane-grid,.chart-grid,.insights-grid{grid-template-columns:repeat(auto-fit,minmax(240px,1fr))}
-  .upload-grid{grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px;max-height:calc(100vh - 290px);overflow:auto;padding-right:6px}
-  .lane-upload-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
-  .lane-card,.upload-card,.insight-card{padding:20px}
-  .upload-card{border-radius:22px;background:linear-gradient(180deg,rgba(255,255,255,.03),rgba(255,255,255,.018));border:1px solid rgba(255,255,255,.075);display:grid;grid-template-columns:1fr;align-items:start;gap:14px;padding:16px}
-  .upload-card h3{font-size:1.18rem;letter-spacing:-.03em;margin:4px 0 2px}
-  .upload-card-copy{display:grid;gap:10px;align-content:start}
-  .upload-card-media{display:grid;gap:12px;align-content:start}
-  .lane-card-top{display:grid;grid-template-columns:72px 1fr;gap:14px;align-items:start}
-  .lane-signal{display:grid;justify-items:center;gap:8px}
-  .lane-signal-head{width:56px;padding:8px 7px;border-radius:18px;background:linear-gradient(180deg,#17181d,#0c0d11);border:1px solid rgba(255,255,255,0.1);display:grid;gap:6px}
-  .lane-signal-lamp{width:24px;height:24px;border-radius:50%;margin:0 auto;opacity:.2}
+  .signal-phase strong{display:block;font-size:.9rem;margin-top:4px}
+  .signal-phase small{display:block;color:var(--text-muted);margin-top:2px;font-size:.75rem}
+  .signal-details{display:grid;gap:12px}
+  .decision-summary{padding:14px;border-radius:var(--radius-sm);background:var(--accent-soft);border:1px solid rgba(116,34,230,.2)}
+  .decision-summary h3{font-size:1.5rem;margin:4px 0 6px}
+  .decision-meta{display:flex;gap:8px;flex-wrap:wrap}
+  .chip,.pill,.density-badge{display:inline-flex;border-radius:999px;font-weight:600}
+  .chip{padding:5px 10px;font-size:.75rem}
+  .chip.green,.pill.go{background:rgba(34,197,94,.12);color:#86efac}
+  .chip.red,.pill.stop{background:rgba(248,113,113,.12);color:#fca5a5}
+  .chip.blue,.pill.wait{background:rgba(116,34,230,.12);color:#d1b3ff}
+  .lane-grid,.chart-grid,.insights-grid{grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}
+  .upload-grid{grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:10px;max-height:calc(100vh - 260px);overflow:auto;padding-right:4px}
+  .lane-upload-actions{display:grid;grid-template-columns:1fr;gap:8px}
+  .lane-card,.upload-card,.insight-card{padding:16px}
+  .upload-card{border-radius:var(--radius-sm);background:var(--surface-2);border:1px solid var(--border-subtle);display:grid;grid-template-columns:1fr;align-items:start;gap:12px;padding:14px}
+  .upload-card h3{font-size:1rem;letter-spacing:-.02em;margin:2px 0}
+  .upload-card-copy{display:grid;gap:6px;align-content:start}
+  .upload-card-media{display:grid;gap:10px;align-content:start}
+  .lane-card-top{display:grid;grid-template-columns:56px 1fr;gap:12px;align-items:start}
+  .lane-signal{display:grid;justify-items:center;gap:6px}
+  .lane-signal-head{width:44px;padding:6px;border-radius:var(--radius-sm);background:var(--surface-2);border:1px solid var(--border-subtle);display:grid;gap:4px}
+  .lane-signal-lamp{width:20px;height:20px;border-radius:50%;margin:0 auto;opacity:.2}
   .lane-signal-lamp.red{background:radial-gradient(circle at 35% 30%,#fca5a5,#991b1b 68%)}
   .lane-signal-lamp.yellow{background:radial-gradient(circle at 35% 30%,#fde68a,#a16207 68%)}
   .lane-signal-lamp.green{background:radial-gradient(circle at 35% 30%,#86efac,#166534 68%)}
-  .lane-signal-lamp.active{opacity:1;box-shadow:0 0 14px currentColor}
+  .lane-signal-lamp.active{opacity:1}
   .lane-signal-lamp.red.active{color:#ef4444}
   .lane-signal-lamp.yellow.active{color:#eab308}
   .lane-signal-lamp.green.active{color:#22c55e}
-  .lane-signal-copy{font-size:.72rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em;text-align:center}
-  .records-list{display:grid;gap:12px;margin-top:16px}
-  .record-item{padding:16px;border-radius:18px;display:grid;gap:12px}
-  .record-row{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:center}
-  .record-actions{display:flex;gap:10px;flex-wrap:wrap}
-  .record-form{display:grid;grid-template-columns:1fr 180px auto auto;gap:10px;align-items:end}
-  .lane-card-head{display:flex;justify-content:space-between;gap:12px;align-items:start}
-  .lane-card.go{box-shadow:inset 0 -3px 0 rgba(34,197,94,.8)}
-  .lane-card.stop{box-shadow:inset 0 -3px 0 rgba(248,113,113,.8)}
-  .density-badge{margin-top:12px;padding:6px 12px;font-size:.76rem;text-transform:uppercase;letter-spacing:.05em}
-  .density-low{background:rgba(34,197,94,.14);color:#86efac}.density-medium{background:rgba(250,204,21,.14);color:#fde68a}.density-high{background:rgba(249,115,22,.14);color:#fdba74}.density-critical{background:rgba(239,68,68,.16);color:#fca5a5}
-  .dropzone{margin-top:4px;border:1px dashed rgba(116,34,230,.34);border-radius:24px;padding:13px 15px;background:linear-gradient(180deg,rgba(116,34,230,.09),rgba(116,34,230,.05));text-align:left;cursor:pointer;transition:border-color .2s ease,background .2s ease,transform .2s ease;display:grid;gap:4px;min-height:84px;align-content:start;width:100%}
-  .dropzone.dragover,.dropzone:hover{border-color:rgba(116,34,230,.6);background:linear-gradient(180deg,rgba(116,34,230,.14),rgba(116,34,230,.08));transform:translateY(-1px)}
-  .dropzone strong{display:block;font-size:.9rem;letter-spacing:-.01em;color:var(--text-primary)}
-  .dropzone .muted{font-size:.8rem;line-height:1.35}
-  .selected-file{margin-top:4px;min-height:16px;color:#86efac;font-size:.8rem}
-  .lane-video{width:100%;aspect-ratio:16/9;border-radius:14px;border:1px solid rgba(255,255,255,.1);background:#020617;margin-top:14px;object-fit:cover}
-  .live-camera-tools{display:grid;gap:10px}
+  .lane-signal-copy{font-size:.68rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.04em;text-align:center}
+  .records-list{display:grid;gap:10px;margin-top:14px}
+  .record-item{padding:14px;border-radius:var(--radius-sm);display:grid;gap:10px}
+  .record-row{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center}
+  .record-actions{display:flex;gap:8px;flex-wrap:wrap}
+  .record-form{display:grid;grid-template-columns:1fr 160px auto auto;gap:8px;align-items:end}
+  .lane-card-head{display:flex;justify-content:space-between;gap:10px;align-items:start}
+  .lane-card.go{border-left:3px solid var(--success)}
+  .lane-card.stop{border-left:3px solid var(--error)}
+  .density-badge{margin-top:10px;padding:4px 10px;font-size:.7rem;text-transform:uppercase;letter-spacing:.04em}
+  .density-low{background:rgba(34,197,94,.1);color:#86efac}.density-medium{background:rgba(250,204,21,.1);color:#fde68a}.density-high{background:rgba(249,115,22,.1);color:#fdba74}.density-critical{background:rgba(239,68,68,.1);color:#fca5a5}
+  .dropzone{margin-top:4px;border:1px dashed var(--border-strong);border-radius:var(--radius-sm);padding:12px;background:var(--surface-1);text-align:left;cursor:pointer;transition:border-color .15s ease,background .15s ease;display:grid;gap:4px;min-height:72px;align-content:start;width:100%}
+  .dropzone.dragover,.dropzone:hover{border-color:var(--accent);background:var(--accent-soft)}
+  .dropzone strong{display:block;font-size:.8rem;color:var(--text-primary)}
+  .dropzone .muted{font-size:.75rem;line-height:1.3}
+  .selected-file{margin-top:4px;min-height:14px;color:var(--success);font-size:.75rem}
+  .lane-video{width:100%;aspect-ratio:16/9;border-radius:var(--radius-sm);border:1px solid var(--border-subtle);background:var(--bg-main);margin-top:12px;object-fit:cover}
+  .live-camera-tools{display:none}
   .live-camera-select{width:100%}
-  .live-camera-preview{width:100%;aspect-ratio:16/9;border-radius:14px;border:1px solid rgba(255,255,255,.1);background:#020617;object-fit:cover}
-  .live-camera-note{font-size:.82rem;color:var(--text-secondary)}
-  .live-toolbar{display:grid;gap:10px;margin-top:18px}
-  .live-toolbar-meta{display:grid;gap:10px;margin-top:14px}
-  .compact-toolbar{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:end;margin-bottom:14px}
+  .live-camera-preview{width:100%;aspect-ratio:16/9;border-radius:var(--radius-sm);border:1px solid var(--border-subtle);background:var(--bg-main);object-fit:cover}
+  .live-camera-note{font-size:.75rem;color:var(--text-secondary)}
+  .live-toolbar{display:grid;gap:8px;margin-top:14px}
+  .live-toolbar-meta{display:grid;gap:8px;margin-top:12px}
+  .compact-toolbar{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:end;margin-bottom:12px}
   .lane-filter{width:100%}
-  .upload-summary{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
-  .upload-summary .chip{background:rgba(255,255,255,.05);color:#dbe6f3}
-  .lane-media-note{margin-top:8px;font-size:.88rem;color:var(--text-secondary)}
+  .upload-summary{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+  .upload-summary .chip{background:var(--surface-2);color:var(--text-secondary)}
+  .lane-media-note{margin-top:6px;font-size:.8rem;color:var(--text-secondary)}
   .toolbar{grid-template-columns:1fr auto;align-items:center}
   .analytics-toolbar{grid-template-columns:auto;align-items:center}
-  .chart-card{min-height:280px;border-radius:24px}
-  .chart-card svg{width:100%;height:180px;display:block;margin-top:12px}
-  .status-message{display:none;padding:14px 16px;border-radius:18px;border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.03)}
-  .status-message.info{display:block;background:rgba(116,34,230,.12);color:#d7c2ff;border-color:rgba(116,34,230,.24)}
-  .status-message.error{display:block;background:rgba(127,29,29,.32);color:#fecaca}
-  select,input[type="datetime-local"],input[type="number"]{min-height:48px;padding:12px 14px;border-radius:18px;border:1px solid var(--border-subtle);background:var(--bg-surface);color:var(--text-primary)}
-  .control-stack .btn{width:100%;min-height:46px;padding:12px 18px}
-  .results-shell{display:grid;gap:14px;max-height:calc(100vh - 290px);overflow:auto;padding-right:6px}
-  .history-shell{display:grid;gap:16px;max-height:calc(100vh - 230px);overflow:auto;padding-right:6px}
+  .chart-card{min-height:240px;border-radius:var(--radius-card)}
+  .chart-card svg{width:100%;height:160px;display:block;margin-top:10px}
+  .status-message{display:none;padding:12px 14px;border-radius:var(--radius-sm);border:1px solid var(--border-subtle);background:var(--surface-2)}
+  .status-message.info{display:block;background:var(--accent-soft);color:#d7c2ff;border-color:rgba(116,34,230,.2)}
+  .status-message.error{display:block;background:var(--error-soft);color:#fecaca}
+  select,input[type="datetime-local"],input[type="number"]{min-height:40px;padding:10px 12px;border-radius:var(--radius-sm);border:1px solid var(--border-subtle);background:var(--bg-surface);color:var(--text-primary);font-size:.875rem}
+  .control-stack .btn{width:100%;min-height:40px;padding:10px 16px}
+  .results-shell{display:grid;gap:12px;max-height:calc(100vh - 260px);overflow:auto;padding-right:4px}
+  .history-shell{display:grid;gap:14px;max-height:calc(100vh - 220px);overflow:auto;padding-right:4px}
   @media (min-width:1140px){
     .smart-overview{grid-template-columns:1fr}
-    .smart-overview .hero{
-      display:grid;
-      grid-template-columns:minmax(280px,.85fr) minmax(0,1.15fr);
-      gap:22px;
-      align-items:stretch;
-    }
-    .smart-overview .section-heading{
-      margin-bottom:0;
-      padding-right:8px;
-      align-content:start;
-    }
+    .decision-hero{grid-template-columns:minmax(0,1.2fr) minmax(260px,.8fr)}
   }
-  @media (max-width:1200px){.decision-hero{grid-template-columns:1fr}.control-stack{position:static}.upload-grid,.results-shell,.history-shell{max-height:none;overflow:visible}}
-  @media (max-width:1040px){.hero-top,.toolbar,.analytics-toolbar,.stats-grid,.record-form,.workspace-grid,.smart-overview,.upload-card,.control-stack,.decision-hero,.decision-side-grid,.compact-toolbar{grid-template-columns:1fr}.hero-actions{justify-content:flex-start}.smart-tabs{position:relative;top:0}}
-  @media (max-width:760px){.lane-upload-actions{grid-template-columns:1fr}}
+  @media (max-width:1100px){.workspace-grid{grid-template-columns:1fr}.control-stack{position:static}.upload-grid,.results-shell,.history-shell{max-height:none;overflow:visible}}
+  @media (max-width:900px){.hero-top,.toolbar,.analytics-toolbar,.stats-grid,.record-form,.smart-overview,.upload-card,.control-stack,.decision-hero,.decision-side-grid,.compact-toolbar{grid-template-columns:1fr}.hero-actions{justify-content:flex-start}.smart-tabs{position:relative;top:0}}
 </style>
 {% endblock %}
 {% block body %}
@@ -177,16 +161,15 @@
 
 <main class="page-shell">
   <div class="container">
-    <section class="page-hero">
+    <section class="page-hero" style="margin-bottom:24px">
       <div class="page-hero-copy">
         <div class="page-eyebrow">Signal control</div>
-        <h1 class="page-title">{{ intersection.name }}</h1>
-        <p class="page-subtitle">Upload lane images or videos, run YOLO analysis, and review the signal decision alongside recent traffic history.</p>
+        <h1 class="page-title" style="font-size:clamp(1.5rem,3vw,2rem)">{{ intersection.name }}</h1>
+        <p class="page-subtitle" style="font-size:.875rem;margin-bottom:0">Upload lane media, run analysis, and review signal recommendations.</p>
       </div>
       <div class="page-actions">
-        <a href="{{ url_for('intersection_detail', intersection_id=intersection.id) }}" class="btn btn-secondary"><span class="icon-inline"><svg viewBox="0 0 24 24"><use href="#icon-overview"/></svg></span>Overview</a>
-        <a href="{{ url_for('signal_wall', intersection_id=intersection.id) }}" class="btn btn-primary"><span class="icon-inline"><svg viewBox="0 0 24 24"><use href="#icon-signal-view"/></svg></span>Signal view</a>
-        <a href="{{ url_for('intersection_monitor', intersection_id=intersection.id) }}" class="btn btn-ghost"><span class="icon-inline"><svg viewBox="0 0 24 24"><use href="#icon-monitor"/></svg></span>Live monitor</a>
+        <a href="{{ url_for('intersection_detail', intersection_id=intersection.id) }}" class="btn btn-secondary btn-sm">Overview</a>
+        <a href="{{ url_for('signal_wall', intersection_id=intersection.id) }}" class="btn btn-primary btn-sm">Signal view</a>
       </div>
     </section>
 
@@ -195,38 +178,27 @@
         <article class="decision-main">
           <div class="mini-label">Current signal decision</div>
           <h2 class="decision-title" id="decision-title">Awaiting analysis</h2>
-          <p class="decision-copy" id="decision-copy">Upload lane images or videos and run analysis to generate a live signal recommendation for this intersection.</p>
+          <p class="decision-copy" id="decision-copy">Upload lane media and run analysis to generate a signal recommendation.</p>
           <div class="decision-chips" id="decision-chips">
             <span class="chip blue">No active decision</span>
           </div>
         </article>
         <aside class="decision-side">
-          <div class="mini-label">Snapshot</div>
-          <div class="decision-side-grid" style="margin-top:14px">
+          <div class="decision-side-grid">
             <article class="decision-metric"><div class="decision-metric-label">Go lane</div><div class="decision-metric-value" id="decision-go-lane">-</div></article>
-            <article class="decision-metric"><div class="decision-metric-label">Green time</div><div class="decision-metric-value" id="decision-green-time">0s</div></article>
-            <article class="decision-metric"><div class="decision-metric-label">Vehicles counted</div><div class="decision-metric-value" id="decision-total-vehicles">0</div></article>
-            <article class="decision-metric"><div class="decision-metric-label">Lanes analyzed</div><div class="decision-metric-value" id="decision-lanes-analyzed">0</div></article>
+            <article class="decision-metric"><div class="decision-metric-label">Vehicles</div><div class="decision-metric-value" id="decision-total-vehicles">0</div></article>
           </div>
           <div class="decision-confidence">
             <div class="decision-confidence-copy">
-              <div class="decision-confidence-label">Decision confidence</div>
+              <div class="decision-confidence-label">Confidence</div>
               <div class="decision-confidence-value" id="decision-confidence-label">Waiting</div>
             </div>
             <div class="confidence-bar"><span id="decision-confidence-bar"></span></div>
-            <div class="confidence-note" id="decision-confidence-note">Run an analysis to compare lane demand and explain why a direction receives green first.</div>
           </div>
-          <div class="decision-ranking">
-            <div class="decision-metric-label" style="margin-bottom:10px">Demand ranking</div>
-            <div class="ranking-list" id="decision-ranking-list">
-              <div class="ranking-item">
-                <div class="ranking-item-main">
-                  <div class="ranking-item-title">No ranking yet</div>
-                  <div class="ranking-item-meta">Upload lane media to compare demand across approaches.</div>
-                </div>
-              </div>
-            </div>
-          </div>
+          <div class="decision-ranking" id="decision-ranking-list" style="display:none"></div>
+          <div id="decision-green-time" style="display:none">0s</div>
+          <div id="decision-lanes-analyzed" style="display:none">0</div>
+          <div id="decision-confidence-note" style="display:none"></div>
         </aside>
       </section>
 
@@ -237,19 +209,12 @@
       </div>
 
       <section class="smart-overview">
-        <section class="hero">
-          <div class="section-heading">
-            <div>
-              <div class="mini-label">Intersection overview</div>
-              <h2>Current setup</h2>
+        <section class="hero" style="padding:16px">
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
+            <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+              <div class="stat-card" style="margin:0;padding:10px 14px"><div class="mini-label">Lanes</div><div class="stat-value" style="font-size:1.1rem;margin-top:4px">{{ intersection.lanes|length }}</div></div>
+              <div class="stat-card" style="margin:0;padding:10px 14px"><div class="mini-label">Status</div><div class="stat-value compact" id="analytics-source" style="margin-top:4px">{% if analytics.sample_count %}Active{% else %}Awaiting data{% endif %}</div></div>
             </div>
-            <div class="section-heading-copy">This summary keeps the important context in one place before you upload files or review signal results.</div>
-          </div>
-          <div class="stats-grid">
-            <div class="stat-card"><div class="mini-label">Intersection</div><div class="stat-value">{{ intersection.id }}</div></div>
-            <div class="stat-card"><div class="mini-label">Roads</div><div class="stat-value">{{ intersection.num_roads or intersection.lanes|length or "-" }}</div></div>
-            <div class="stat-card"><div class="mini-label">Configured lanes</div><div class="stat-value">{{ intersection.lanes|length }}</div></div>
-            <div class="stat-card"><div class="mini-label">Analytics source</div><div class="stat-value compact" id="analytics-source">{% if analytics.sample_count %}{{ analytics.source }}{% else %}Awaiting data{% endif %}</div></div>
           </div>
         </section>
 
@@ -335,53 +300,29 @@
 
         <aside class="control-stack">
           <section class="panel">
-            <div class="section-heading">
-              <div>
-                <div class="mini-label">Run analysis</div>
-                <h2>Controls</h2>
-              </div>
+            <div class="mini-label" style="margin-bottom:8px">Run analysis</div>
+            <div style="display:grid;gap:8px">
+              <input type="datetime-local" id="analysis-timestamp" title="Analysis timestamp">
+              <input type="number" id="event-duration" min="1" max="240" value="15" title="Duration (minutes)">
             </div>
-            <div>
-              <div class="mini-label" style="margin-bottom:6px">Analysis date and time</div>
-              <input type="datetime-local" id="analysis-timestamp">
-              <div class="muted" style="margin-top:6px">Set the exact photo timestamp you want saved with this analysis.</div>
-              <div class="mini-label" style="margin:12px 0 6px">Traffic occurrence duration (minutes)</div>
-              <input type="number" id="event-duration" min="1" max="240" value="15">
-              <div class="muted" style="margin-top:6px">Use this to describe how long the observed traffic build-up lasted.</div>
+            <div style="display:grid;gap:8px;margin-top:12px">
+              <button type="button" class="btn btn-primary" id="analyze-btn">Analyze photos</button>
+              <button type="button" class="btn btn-secondary" id="analyze-video-btn">Analyze videos</button>
             </div>
-            <div style="display:grid;gap:10px;margin-top:18px">
-              <button type="button" class="btn btn-primary" id="analyze-btn">Analyze photos and update signal</button>
-              <button type="button" class="btn btn-secondary" id="analyze-video-btn">Analyze videos and simulate signal</button>
-              <button type="button" class="btn btn-ghost" id="delete-photo-analyses-btn">Delete photo analyses only</button>
-            </div>
-            <div class="status-message" id="status-message" style="margin-top:16px"></div>
+            <div class="status-message" id="status-message" style="margin-top:12px"></div>
+            <button type="button" class="btn btn-ghost btn-sm" id="delete-photo-analyses-btn" style="margin-top:8px;width:100%">Delete analyses</button>
           </section>
 
           <section class="panel">
-            <div class="mini-label">Secondary views</div>
-            <h2 style="margin-top:6px">Monitor outputs</h2>
-            <p class="panel-copy">Open Signal View for a presentation layout, or jump to Live Monitor for camera-focused inspection.</p>
-            <div style="display:grid;gap:10px;margin-top:18px">
-              <a href="{{ url_for('signal_wall', intersection_id=intersection.id) }}" class="btn btn-primary"><span class="icon-inline"><svg viewBox="0 0 24 24"><use href="#icon-signal-view"/></svg></span>Signal view</a>
-              <a href="{{ url_for('intersection_monitor', intersection_id=intersection.id) }}" class="btn btn-ghost"><span class="icon-inline"><svg viewBox="0 0 24 24"><use href="#icon-monitor"/></svg></span>Live monitor</a>
+            <div class="mini-label" style="margin-bottom:8px">Live AI</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+              <button type="button" class="btn btn-primary btn-sm" id="start-live-analysis-btn">Start</button>
+              <button type="button" class="btn btn-ghost btn-sm" id="stop-live-analysis-btn">Stop</button>
             </div>
-          </section>
-
-          <section class="panel">
-            <div class="mini-label">Live inference</div>
-            <h2 style="margin-top:6px">Camera-driven signal updates</h2>
-            <p class="panel-copy">Start lane previews, sample compressed frames every few seconds, and keep the signal recommendation updating from live feeds.</p>
-            <div class="live-toolbar">
-              <button type="button" class="btn btn-primary" id="start-live-analysis-btn">Start live AI</button>
-              <button type="button" class="btn btn-ghost" id="stop-live-analysis-btn">Stop live AI</button>
+            <div style="margin-top:10px">
+              <input type="number" id="live-interval-seconds" min="2" max="30" value="4" title="Interval (seconds)" style="width:100%">
             </div>
-            <div class="live-toolbar-meta">
-              <div>
-                <div class="mini-label" style="margin-bottom:6px">Sampling interval (seconds)</div>
-                <input type="number" id="live-interval-seconds" min="2" max="30" value="4">
-              </div>
-              <div class="live-camera-note" id="live-analysis-meta">Idle. Starting live mode will capture one JPEG snapshot per lane on each interval instead of uploading full videos.</div>
-            </div>
+            <div class="live-camera-note" id="live-analysis-meta" style="margin-top:8px">Idle</div>
           </section>
         </aside>
       </section>

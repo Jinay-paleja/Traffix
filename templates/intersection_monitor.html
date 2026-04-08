@@ -4,109 +4,82 @@
 <style>
   .monitor-page {
     min-height: 100vh;
-    padding: 18px;
-    background:
-      radial-gradient(circle at top, rgba(14, 165, 233, 0.16), transparent 30%),
-      radial-gradient(circle at 20% 20%, rgba(59, 130, 246, 0.08), transparent 28%),
-      linear-gradient(180deg, #05070a 0%, #020304 100%);
+    padding: 14px;
+    background: var(--bg-main);
   }
   .monitor-shell {
-    max-width: 1680px;
+    max-width: 1600px;
     margin: 0 auto;
-    min-height: calc(100vh - 36px);
+    min-height: calc(100vh - 28px);
     display: flex;
     flex-direction: column;
-    gap: 14px;
+    gap: 12px;
   }
   .monitor-header-card {
-    display: grid;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
     gap: 14px;
-    padding: 18px 20px;
-    border-radius: 24px;
-    border: 1px solid rgba(148, 163, 184, 0.16);
-    background:
-      linear-gradient(180deg, rgba(15, 23, 42, 0.72), rgba(5, 9, 16, 0.88)),
-      radial-gradient(circle at top right, rgba(34, 197, 94, 0.08), transparent 24%);
-    box-shadow: 0 24px 80px rgba(0, 0, 0, 0.38);
+    padding: 14px 18px;
+    border-radius: var(--radius-card);
+    border: 1px solid var(--border-subtle);
+    background: var(--bg-surface);
+    flex-wrap: wrap;
   }
   .monitor-topbar {
     display: flex;
     justify-content: space-between;
-    align-items: flex-start;
-    gap: 18px;
+    align-items: center;
+    gap: 14px;
     flex-wrap: wrap;
+    width: 100%;
   }
   .monitor-title {
-    font-size: clamp(1.75rem, 3vw, 3rem);
-    font-weight: 800;
-    line-height: 1.05;
-    letter-spacing: -0.05em;
-    margin-bottom: 6px;
+    font-size: 1.25rem;
+    font-weight: 700;
+    line-height: 1.2;
+    letter-spacing: -0.02em;
   }
   .monitor-subtitle {
-    color: var(--text-secondary);
-    font-size: 1rem;
-    max-width: 64ch;
+    display: none;
   }
   .monitor-actions {
     display: flex;
-    gap: 10px;
+    gap: 8px;
     flex-wrap: wrap;
     align-items: center;
   }
   .monitor-actions .btn {
-    min-height: 44px;
-    padding: 10px 20px;
+    min-height: 36px;
+    padding: 8px 14px;
+    font-size: .8125rem;
   }
   .monitor-grid {
     display: grid;
-    gap: 14px;
+    gap: 10px;
     flex: 1;
     min-height: 0;
   }
-  .monitor-grid.grid-count-1 {
-    grid-template-columns: 1fr;
-  }
-  .monitor-grid.grid-count-2 {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-  .monitor-grid.grid-count-3 {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-  .monitor-grid.grid-count-3 .monitor-tile:first-child {
-    grid-column: span 2;
-  }
-  .monitor-grid.grid-count-4 {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
+  .monitor-grid.grid-count-1 { grid-template-columns: 1fr; }
+  .monitor-grid.grid-count-2 { grid-template-columns: repeat(2, 1fr); }
+  .monitor-grid.grid-count-3 { grid-template-columns: repeat(2, 1fr); }
+  .monitor-grid.grid-count-3 .monitor-tile:first-child { grid-column: span 2; }
+  .monitor-grid.grid-count-4 { grid-template-columns: repeat(2, 1fr); }
   .monitor-grid.grid-count-5,
   .monitor-grid.grid-count-6,
   .monitor-grid.grid-count-7,
   .monitor-grid.grid-count-8,
-  .monitor-grid.grid-count-9 {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
+  .monitor-grid.grid-count-9 { grid-template-columns: repeat(3, 1fr); }
   .monitor-tile {
     position: relative;
     min-height: 0;
     aspect-ratio: 16 / 9;
-    border-radius: 22px;
+    border-radius: var(--radius-sm);
     overflow: hidden;
-    border: 1px solid rgba(148, 163, 184, 0.12);
-    background:
-      linear-gradient(180deg, rgba(7, 10, 16, 0.94), rgba(2, 6, 12, 0.98)),
-      repeating-linear-gradient(
-        -45deg,
-        rgba(255,255,255,0.018) 0,
-        rgba(255,255,255,0.018) 10px,
-        transparent 10px,
-        transparent 22px
-      );
-    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.24);
+    border: 1px solid var(--border-subtle);
+    background: var(--surface-1);
   }
-  .monitor-tile.is-offline {
-    opacity: 0.84;
-  }
+  .monitor-tile.is-offline { opacity: 0.7; }
   .tile-header {
     position: absolute;
     top: 0;
@@ -116,48 +89,40 @@
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
-    gap: 12px;
-    padding: 16px 16px 28px;
-    background: linear-gradient(180deg, rgba(4, 6, 9, 0.9) 0%, rgba(4, 6, 9, 0.45) 72%, rgba(4, 6, 9, 0) 100%);
+    gap: 8px;
+    padding: 10px 12px 16px;
+    background: linear-gradient(180deg, rgba(0,0,0,.7) 0%, transparent 100%);
   }
   .tile-title {
-    font-size: 1.05rem;
-    font-weight: 700;
-    letter-spacing: -0.02em;
+    font-size: .85rem;
+    font-weight: 600;
   }
   .tile-meta {
-    color: rgba(255,255,255,0.56);
-    font-size: 0.74rem;
+    color: var(--text-muted);
+    font-size: .68rem;
     text-transform: uppercase;
-    letter-spacing: 0.06em;
+    letter-spacing: .04em;
     margin-top: 2px;
   }
   .tile-status {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
-    padding: 6px 10px;
+    gap: 4px;
+    padding: 4px 8px;
     border-radius: 999px;
-    font-size: 0.72rem;
-    font-weight: 700;
+    font-size: .65rem;
+    font-weight: 600;
     text-transform: uppercase;
-    letter-spacing: 0.05em;
   }
   .tile-status::before {
     content: "";
-    width: 7px;
-    height: 7px;
+    width: 6px;
+    height: 6px;
     border-radius: 50%;
     background: currentColor;
   }
-  .tile-status.on {
-    background: rgba(52, 211, 153, 0.14);
-    color: var(--success);
-  }
-  .tile-status.off {
-    background: rgba(248, 113, 113, 0.14);
-    color: var(--error);
-  }
+  .tile-status.on { background: rgba(52, 211, 153, 0.1); color: var(--success); }
+  .tile-status.off { background: rgba(248, 113, 113, 0.1); color: var(--error); }
   .tile-feed {
     position: relative;
     min-height: 0;
@@ -165,9 +130,7 @@
     overflow: hidden;
     display: grid;
     place-items: center;
-    background:
-      radial-gradient(circle at center, rgba(15, 23, 42, 0.38), rgba(2, 6, 12, 0.98)),
-      #07090d;
+    background: var(--surface-1);
   }
   .tile-feed video,
   .tile-feed img {
@@ -175,122 +138,58 @@
     height: 100%;
     object-fit: cover;
     display: block;
-    background: #05070b;
+    background: var(--bg-main);
   }
-  .tile-feed img {
-    display: none;
-  }
+  .tile-feed img { display: none; }
   .tile-idle {
     position: absolute;
     inset: 0;
     display: grid;
     place-items: center;
     text-align: center;
-    padding: 28px;
-    color: rgba(226, 232, 240, 0.78);
-    font-size: 1rem;
-    letter-spacing: 0.01em;
-    background: linear-gradient(180deg, rgba(2, 6, 12, 0.18), rgba(2, 6, 12, 0.6));
+    padding: 16px;
+    color: var(--text-muted);
+    font-size: .8rem;
+    background: rgba(0,0,0,.4);
   }
   .tile-idle strong {
     display: block;
-    color: #f8fafc;
-    font-size: 1.05rem;
-    margin-bottom: 6px;
+    color: var(--text-primary);
+    font-size: .85rem;
+    margin-bottom: 4px;
   }
-  .monitor-tile.has-feed .tile-idle {
-    display: none;
-  }
+  .monitor-tile.has-feed .tile-idle { display: none; }
   .tile-offline {
     position: absolute;
     inset: 0;
     display: grid;
     place-items: center;
     color: var(--text-muted);
-    font-size: 1rem;
-    background:
-      linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0)),
-      repeating-linear-gradient(
-        -45deg,
-        rgba(255,255,255,0.02) 0,
-        rgba(255,255,255,0.02) 10px,
-        transparent 10px,
-        transparent 20px
-      );
+    font-size: .8rem;
+    background: var(--surface-1);
   }
   .tile-footer {
-    position: absolute;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    z-index: 2;
-    padding: 28px 16px 14px;
-    background: linear-gradient(180deg, rgba(4, 6, 9, 0) 0%, rgba(4, 6, 9, 0.55) 35%, rgba(4, 6, 9, 0.9) 100%);
-    display: flex;
-    justify-content: space-between;
-    gap: 10px;
-    align-items: flex-end;
-  }
-  .tile-footer-copy {
-    color: rgba(255,255,255,0.72);
-    font-size: 0.78rem;
-    letter-spacing: 0.02em;
-  }
-  .tile-source {
-    color: rgba(255,255,255,0.64);
-    font-size: 0.78rem;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-  }
-  .monitor-statusbar [data-webcam-status='1'] {
     display: none;
-    padding: 14px 16px;
-    border-radius: 16px;
-    border: 1px solid rgba(148, 163, 184, 0.14);
-    background: rgba(15, 23, 42, 0.72);
-    color: rgba(226, 232, 240, 0.84);
   }
-  .monitor-statusbar [data-webcam-status='1'][data-tone='success'] {
-    border-color: rgba(34, 197, 94, 0.28);
-    background: rgba(20, 83, 45, 0.34);
-    color: #86efac;
+  .monitor-statusbar {
+    display: none;
   }
-  .monitor-statusbar [data-webcam-status='1'][data-tone='error'] {
-    border-color: rgba(248, 113, 113, 0.28);
-    background: rgba(127, 29, 29, 0.3);
-    color: #fca5a5;
-  }
-  .monitor-grid.grid-count-1 .monitor-tile {
-    aspect-ratio: 21 / 9;
-  }
-  .monitor-grid.grid-count-2 .monitor-tile,
-  .monitor-grid.grid-count-3 .monitor-tile,
-  .monitor-grid.grid-count-4 .monitor-tile {
-    aspect-ratio: 16 / 9;
-  }
+  .monitor-grid.grid-count-1 .monitor-tile { aspect-ratio: 21 / 9; }
   .monitor-grid.grid-count-5 .monitor-tile,
   .monitor-grid.grid-count-6 .monitor-tile,
   .monitor-grid.grid-count-7 .monitor-tile,
   .monitor-grid.grid-count-8 .monitor-tile,
-  .monitor-grid.grid-count-9 .monitor-tile {
-    aspect-ratio: 4 / 3;
-  }
-  @media (max-width: 1100px) {
+  .monitor-grid.grid-count-9 .monitor-tile { aspect-ratio: 4 / 3; }
+  @media (max-width: 1000px) {
     .monitor-grid.grid-count-5,
     .monitor-grid.grid-count-6,
     .monitor-grid.grid-count-7,
     .monitor-grid.grid-count-8,
-    .monitor-grid.grid-count-9 {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
+    .monitor-grid.grid-count-9 { grid-template-columns: repeat(2, 1fr); }
   }
-  @media (max-width: 720px) {
-    .monitor-page {
-      padding: 12px 10px 16px;
-    }
-    .monitor-header-card {
-      padding: 16px;
-    }
+  @media (max-width: 680px) {
+    .monitor-page { padding: 10px; }
+    .monitor-header-card { padding: 12px; }
     .monitor-grid,
     .monitor-grid.grid-count-2,
     .monitor-grid.grid-count-3,
@@ -299,16 +198,8 @@
     .monitor-grid.grid-count-6,
     .monitor-grid.grid-count-7,
     .monitor-grid.grid-count-8,
-    .monitor-grid.grid-count-9 {
-      grid-template-columns: 1fr;
-    }
-    .monitor-grid.grid-count-3 .monitor-tile:first-child {
-      grid-column: auto;
-    }
-    .monitor-actions .btn {
-      min-height: 42px;
-      padding: 10px 18px;
-    }
+    .monitor-grid.grid-count-9 { grid-template-columns: 1fr; }
+    .monitor-grid.grid-count-3 .monitor-tile:first-child { grid-column: auto; }
   }
 </style>
 {% endblock %}
@@ -336,18 +227,15 @@
   <div class="monitor-shell" data-intersection-id="{{ intersection.id }}" data-active-count="{{ active_lanes|length }}" data-total-count="{{ intersection.lanes|length }}">
     <section class="monitor-header-card">
       <section class="monitor-topbar">
-        <div>
-          <div class="page-eyebrow">Live monitor</div>
+        <div style="display:flex;align-items:center;gap:12px">
           <h1 class="monitor-title">{{ intersection.name }}</h1>
-          <p class="monitor-subtitle">
-            {{ intersection.location }} · {{ lane_count }} live camera tile{{ '' if lane_count == 1 else 's' }} fitted automatically for this intersection{% if hidden_count > 0 %} · {{ hidden_count }} disabled hidden from the wall{% endif %}.
-          </p>
+          <span style="font-size:.75rem;color:var(--text-muted)">{{ lane_count }} camera{{ '' if lane_count == 1 else 's' }}</span>
         </div>
         <div class="monitor-actions">
-          <button type="button" class="btn btn-secondary" id="enter-fullscreen-btn">Fullscreen</button>
-          <button type="button" class="btn btn-primary" id="start-all-cameras-btn">Enable camera</button>
-          <button type="button" class="btn btn-ghost" id="stop-all-cameras-btn">Stop camera</button>
-          <a href="{{ url_for('intersection_detail', intersection_id=intersection.id) }}" class="btn btn-ghost">Back to overview</a>
+          <button type="button" class="btn btn-ghost btn-sm" id="enter-fullscreen-btn">Fullscreen</button>
+          <button type="button" class="btn btn-primary btn-sm" id="start-all-cameras-btn">Enable</button>
+          <button type="button" class="btn btn-ghost btn-sm" id="stop-all-cameras-btn">Stop</button>
+          <a href="{{ url_for('intersection_detail', intersection_id=intersection.id) }}" class="btn btn-ghost btn-sm">Back</a>
         </div>
       </section>
     </section>

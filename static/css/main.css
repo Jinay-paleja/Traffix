@@ -7,7 +7,7 @@
   --brand-light: #9345FF;
   --bg-main: #050505;
   --bg-surface: #121212;
-  --border-subtle: #262626;
+  --border-subtle: #1f1f1f;
   --text-main: #FAFAFA;
   --text-muted: #A1A1AA;
 
@@ -17,39 +17,42 @@
   --bg-elevated: #1a1a1a;
   --surface: var(--bg-surface);
   --border: var(--border-subtle);
-  --border-strong: #404040;
+  --border-strong: #333;
   --text-primary: var(--text-main);
   --text-secondary: var(--text-muted);
   --text-muted: #71717A;
   --accent: var(--brand-purple);
   --accent-hover: var(--brand-light);
-  --accent-soft: rgba(116, 34, 230, 0.18);
-  --accent-glow: rgba(116, 34, 230, 0.25);
+  --accent-soft: rgba(116, 34, 230, 0.12);
+  --accent-glow: rgba(116, 34, 230, 0.15);
   --success: #34d399;
-  --success-soft: rgba(52, 211, 153, 0.15);
+  --success-soft: rgba(52, 211, 153, 0.1);
   --warning: #fbbf24;
-  --warning-soft: rgba(251, 191, 36, 0.15);
+  --warning-soft: rgba(251, 191, 36, 0.1);
   --error: #f87171;
-  --error-soft: rgba(248, 113, 113, 0.15);
+  --error-soft: rgba(248, 113, 113, 0.1);
   --radius: 9999px;
-  --radius-sm: 16px;
-  --radius-lg: 24px;
-  --radius-xl: 32px;
-  --radius-card: 24px;
+  --radius-sm: 12px;
+  --radius-lg: 20px;
+  --radius-xl: 24px;
+  --radius-card: 16px;
+  --space-2: 8px;
   --space-3: 12px;
   --space-4: 16px;
+  --space-5: 20px;
   --space-6: 24px;
   --space-8: 32px;
+  --space-10: 40px;
   --space-12: 48px;
-  --surface-1: #0f1013;
-  --surface-2: #15171c;
-  --surface-3: #1b1e24;
-  --surface-glass: rgba(19, 21, 27, 0.76);
-  --shadow: 0 12px 40px rgba(0, 0, 0, 0.6);
-  --shadow-glow: 0 0 60px rgba(116, 34, 230, 0.12);
-  --shadow-soft: 0 18px 50px rgba(0, 0, 0, 0.28);
-  --transition: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-  --transition-fast: 0.15s ease;
+  --surface-1: #0a0a0a;
+  --surface-2: #111;
+  --surface-3: #181818;
+  --surface-glass: rgba(12, 12, 12, 0.85);
+  --shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  --shadow-glow: 0 0 40px rgba(116, 34, 230, 0.08);
+  --shadow-soft: 0 4px 20px rgba(0, 0, 0, 0.2);
+  --transition: 0.2s ease;
+  --transition-fast: 0.12s ease;
 }
 
 .icon-inline {
@@ -145,53 +148,49 @@ textarea:focus-visible {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 10px;
-  padding: 14px 32px;
+  gap: 8px;
+  padding: 10px 20px;
   font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
-  font-size: 0.9375rem;
-  font-weight: 700;
-  border-radius: var(--radius);
+  font-size: 0.875rem;
+  font-weight: 600;
+  border-radius: var(--radius-sm);
   border: none;
   cursor: pointer;
   transition: all var(--transition);
-  letter-spacing: -0.01em;
-  min-height: 52px;
+  min-height: 40px;
 }
 
-.btn:active {
-  transform: translateY(0);
+.btn-sm {
+  padding: 6px 14px;
+  font-size: 0.8125rem;
+  min-height: 32px;
+  gap: 6px;
+}
+
+.btn-lg {
+  padding: 14px 28px;
+  font-size: 0.9375rem;
+  min-height: 48px;
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, var(--brand-purple) 0%, var(--brand-light) 100%);
+  background: var(--brand-purple);
   color: #fff;
-  box-shadow: 
-    0 0 0 0 rgba(116, 34, 230, 0.4),
-    0 0 20px rgba(116, 34, 230, 0.3);
 }
 
 .btn-primary:hover {
-  transform: translateY(-1px);
-  box-shadow: 
-    0 0 0 0 rgba(116, 34, 230, 0.5),
-    0 0 30px rgba(116, 34, 230, 0.4);
-  background: linear-gradient(135deg, var(--brand-light) 0%, var(--brand-purple) 100%);
-}
-
-.btn-primary:active {
-  transform: translateY(0);
+  background: var(--brand-light);
 }
 
 .btn-secondary {
-  background: rgba(255, 255, 255, 0.03);
+  background: var(--surface-2);
   color: var(--text-primary);
-  border: 1px solid rgba(255, 255, 255, 0.09);
+  border: 1px solid var(--border-subtle);
 }
 
 .btn-secondary:hover {
-  background: rgba(255, 255, 255, 0.06);
-  border-color: rgba(255, 255, 255, 0.16);
-  color: var(--accent-hover);
+  background: var(--surface-3);
+  border-color: var(--border-strong);
 }
 
 .btn-ghost {
@@ -202,16 +201,14 @@ textarea:focus-visible {
 
 .btn-ghost:hover {
   color: var(--text-primary);
-  background: rgba(255, 255, 255, 0.04);
-  border-color: rgba(255, 255, 255, 0.08);
+  background: var(--surface-2);
 }
 
 .btn-ghost.active,
 .btn-ghost[aria-current="page"] {
-  background: linear-gradient(180deg, rgba(116, 34, 230, 0.22), rgba(116, 34, 230, 0.12));
-  border-color: rgba(116, 34, 230, 0.34);
+  background: var(--accent-soft);
+  border-color: rgba(116, 34, 230, 0.25);
   color: var(--text-primary);
-  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.03), 0 0 0 1px rgba(116, 34, 230, 0.08);
 }
 
 /* Forms */
@@ -296,17 +293,15 @@ textarea:focus-visible {
 
 /* Cards */
 .card {
-  background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.015));
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
   border-radius: var(--radius-card);
-  padding: 32px 36px;
-  box-shadow: var(--shadow-soft);
-  transition: border-color var(--transition), box-shadow var(--transition);
+  padding: 24px;
+  transition: border-color var(--transition);
 }
 
 .card:hover {
-  border-color: rgba(255, 255, 255, 0.14);
-  box-shadow: var(--shadow), var(--shadow-glow);
+  border-color: var(--border-strong);
 }
 
 /* Nav */
@@ -505,10 +500,9 @@ textarea:focus-visible {
 }
 
 .surface-panel {
-  background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.015));
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
   border-radius: var(--radius-card);
-  box-shadow: var(--shadow-soft);
 }
 
 .section-stack {
@@ -549,10 +543,10 @@ textarea:focus-visible {
 }
 
 .stat-card {
-  padding: 22px 22px 20px;
-  border-radius: 20px;
-  background: linear-gradient(180deg, rgba(255,255,255,0.045), rgba(255,255,255,0.02));
-  border: 1px solid rgba(255,255,255,0.08);
+  padding: 16px 18px;
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  border: 1px solid var(--border-subtle);
 }
 
 .stat-card .label {
@@ -567,10 +561,10 @@ textarea:focus-visible {
 }
 
 .stat-card .value {
-  font-size: clamp(1.8rem, 4vw, 2.4rem);
-  font-weight: 800;
-  line-height: 1;
-  letter-spacing: -0.04em;
+  font-size: 1.5rem;
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
 }
 
 .stat-card .hint {
