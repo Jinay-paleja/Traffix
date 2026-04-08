@@ -1,0 +1,78 @@
+Traffix – Smart Traffic Signal Optimizer
+=========================================
+
+Project Overview
+----------------
+Traffix is a Python-based web application for optimizing traffic signals using AI and real-time data. It provides a web interface for user registration, login, dashboard, intersection management, and traffic analysis using video/image uploads or live feeds.
+
+Frameworks and Libraries Used
+----------------------------
+- Flask: Main web framework for routing, templating, and session management.
+- Werkzeug: Security utilities (password hashing) and file handling.
+- Jinja2: Templating engine (via Flask) for rendering HTML pages.
+- Firebase Admin SDK: User authentication, Firestore access, and backend data management.
+- OpenCV (cv2): Image and video processing.
+- Ultralytics YOLO: Vehicle detection using deep learning (YOLOv8 model).
+- NumPy: Numerical operations, especially image decoding.
+- Torch & Torchvision: Backend for running YOLO models.
+- Pillow: Image processing.
+
+Project Structure & Main Modules
+-------------------------------
+- app.py: Main Flask application. Handles all routes, user authentication, intersection management, traffic analysis, and integrates all modules.
+- signal_optimizer.py: Logic for optimizing traffic signal timings based on detected vehicle counts and priorities.
+- traffic_detector.py: Uses YOLOv8 to detect vehicles in images and videos, returning vehicle counts and density levels.
+- templates/: Jinja2 HTML templates for all web pages.
+- static/: Static assets (CSS, JS, images, uploaded videos).
+- data/: Legacy local JSON files retained only for one-time migration into Firebase Firestore.
+- requirements.txt: Python dependencies.
+
+How Everything Works
+-------------------
+1. User Authentication
+   - Registration/Login: Users register and log in via Flask routes. Credentials are managed using Firebase Authentication.
+   - Session Management: Flask sessions track logged-in users.
+2. Intersection & Lane Management
+   - Each intersection has multiple lanes, each with a direction and a camera.
+   - Intersection records are stored in Firebase Firestore. Cameras have unique IDs and can be toggled on/off.
+3. Traffic Detection
+   - Image/Video Uploads: Users upload lane images or videos for analysis.
+   - Live Analysis: Supports live camera feeds (base64 images).
+   - Detection: YOLOv8 detects vehicles, returning counts and density levels.
+4. Signal Optimization
+   - Algorithm: Calculates optimal green light durations for each direction based on vehicle counts and priorities.
+   - Adaptive Timing: Distributes total cycle time among lanes, ensuring min/max green times.
+5. Dashboard & Analytics
+   - Dashboard: Shows intersection stats, camera health, recent analyses, and alerts.
+   - Analytics: Tracks traffic history, computes trends, busiest lanes, and provides insights.
+6. Data Persistence
+   - Users/Profile Metadata: Firebase Firestore (`users` collection)
+   - Intersections: Firebase Firestore (`intersections` collection)
+   - Traffic History: Firebase Firestore (`traffic_history` collection)
+   - Intersection Media Metadata: Firebase Firestore (`intersection_media` collection)
+   - Media Files: Uploaded videos/images in static/uploads/lane_videos/
+   - Legacy Migration: Existing JSON files in `data/` are imported into Firestore automatically when first accessed.
+7. Frontend
+   - Templates: HTML pages rendered with Jinja2.
+   - Static JS/CSS: Handles UI, authentication, and webcam integration.
+
+Key Features
+------------
+- User registration/login with Firebase.
+- Add/manage intersections and lanes.
+- Upload images/videos or use live feeds for traffic analysis.
+- AI-based vehicle detection (YOLOv8).
+- Adaptive signal timing optimization.
+- Dashboard with real-time stats and analytics.
+- Cloud-backed data persistence using Firebase Firestore.
+
+Summary Table
+-------------
+| Area            | Technology/Module         | Purpose                            |
+|-----------------|--------------------------|------------------------------------|
+| Web Framework   | Flask                    | Routing, sessions, templates       |
+| Auth            | Firebase Admin SDK       | User registration/login            |
+| AI/Detection    | Ultralytics YOLO, OpenCV | Vehicle detection in images/videos |
+| Optimization    | signal_optimizer.py      | Adaptive signal timing             |
+| Data Storage    | Firebase Firestore       | Users, intersections, history      |
+| Frontend        | Jinja2, HTML, JS, CSS    | User interface                     |

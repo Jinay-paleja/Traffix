@@ -31,12 +31,14 @@ from werkzeug.utils import secure_filename
 # Firebase Admin SDK
 import firebase_admin
 from firebase_admin import credentials
+from firebase_admin import firestore
 from signal_optimizer import get_signal_optimizer
 from traffic_detector import get_traffic_detector
 
 # Initialize Firebase Admin with service account
 cred = credentials.Certificate("traffix-40acf-firebase-adminsdk-fbsvc-b4a43d8111.json")
 firebase_admin.initialize_app(cred)
+db = firestore.client()
 
 from firebase_admin import auth
 
@@ -63,15 +65,49 @@ BASE_DIR = Path(__file__).resolve().parent
 app = Flask(__name__, template_folder=str(BASE_DIR / "templates"), static_folder=str(BASE_DIR / "static"))
 app.secret_key = os.environ.get("SECRET_KEY", "traffix-dev-secret-change-in-production")
 
-USERS_FILE = BASE_DIR / "data" / "users.json"
-INTERSECTIONS_FILE = BASE_DIR / "data" / "intersections.json"
-TRAFFIC_HISTORY_FILE = BASE_DIR / "data" / "traffic_history.json"
-INTERSECTION_MEDIA_FILE = BASE_DIR / "data" / "intersection_media.json"
+LEGACY_USERS_FILE = BASE_DIR / "data" / "users.json"
+LEGACY_INTERSECTIONS_FILE = BASE_DIR / "data" / "intersections.json"
+LEGACY_TRAFFIC_HISTORY_FILE = BASE_DIR / "data" / "traffic_history.json"
+LEGACY_INTERSECTION_MEDIA_FILE = BASE_DIR / "data" / "intersection_media.json"
 LANE_VIDEO_UPLOAD_DIR = BASE_DIR / "static" / "uploads" / "lane_videos"
 ALLOWED_IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp"}
 ALLOWED_VIDEO_EXTENSIONS = {".mp4", ".mov", ".avi", ".mkv", ".webm"}
 LIVE_ANALYSIS_STATE = {}
 LIVE_HISTORY_INTERVAL_SECONDS = 60
+
+FIRESTORE_COLLECTIONS = {
+    "users": "users",
+    "intersections": "intersections",
+    "traffic_history": "traffic_history",
+    "intersection_media": "intersection_media",
+}
+
+
+def _read_legacy_json(path, root_key=None, default=None):
+    default = {} if default is None else default
+    if not path.exists():
+        return default
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            data = f.read().strip()
+            if not data:
+                return default
+            payload = json.loads(data)
+            if root_key is None:
+                return payload
+            value = payload.get(root_key, default)
+            return value if value is not None else default
+    except (json.JSONDecodeError, OSError):
+        return default
+
+
+def _firestore_collection(name):
+    return db.collection(FIRESTORE_COLLECTIONS[name])
+
+
+def _email_doc_id(email):
+    normalized = (email or "").strip().lower()
+    return base64.urlsafe_b64encode(normalized.encode("utf-8")).decode("ascii").rstrip("=")
 
 
 def _normalize_intersections(intersections):
@@ -159,77 +195,108 @@ def _normalize_intersections(intersections):
 
 
 def load_intersections():
-    if not INTERSECTIONS_FILE.exists():
-        return []
-    try:
-        with open(INTERSECTIONS_FILE, "r", encoding="utf-8") as f:
-            data = f.read().strip()
-            if not data:
-                return []
-            intersections = json.loads(data).get("intersections", [])
-            intersections, changed = _normalize_intersections(intersections)
-            if changed:
-                save_intersections(intersections)
-            return intersections
-    except (json.JSONDecodeError, OSError):
-        return []
+    docs = list(_firestore_collection("intersections").stream())
+    if docs:
+        intersections = [doc.to_dict() for doc in docs]
+    else:
+        intersections = _read_legacy_json(LEGACY_INTERSECTIONS_FILE, "intersections", [])
+        if intersections:
+            save_intersections(intersections)
+
+    intersections, changed = _normalize_intersections(intersections)
+    intersections.sort(key=lambda item: ((item or {}).get("id") or "", (item or {}).get("name") or ""))
+    if changed:
+        save_intersections(intersections)
+    return intersections
 
 
 def save_intersections(intersections):
-    INTERSECTIONS_FILE.parent.mkdir(parents=True, exist_ok=True)
-    with open(INTERSECTIONS_FILE, "w", encoding="utf-8") as f:
-        json.dump({"intersections": intersections}, f, indent=2)
+    collection = _firestore_collection("intersections")
+    current_ids = set()
+    for intersection in intersections or []:
+        if not isinstance(intersection, dict):
+            continue
+        intersection_id = intersection.get("id")
+        if not intersection_id:
+            continue
+        current_ids.add(intersection_id)
+        collection.document(intersection_id).set(intersection)
+
+    for doc in collection.stream():
+        if doc.id not in current_ids:
+            doc.reference.delete()
 
 
 def load_traffic_history():
-    if not TRAFFIC_HISTORY_FILE.exists():
+    docs = list(_firestore_collection("traffic_history").stream())
+    if docs:
+        history = [doc.to_dict() for doc in docs]
+    else:
+        history = _read_legacy_json(LEGACY_TRAFFIC_HISTORY_FILE, "history", [])
+
+    if not isinstance(history, list):
         return []
-    try:
-        with open(TRAFFIC_HISTORY_FILE, "r", encoding="utf-8") as f:
-            data = f.read().strip()
-            if not data:
-                return []
-            payload = json.loads(data)
-            history = payload.get("history", [])
-            if not isinstance(history, list):
-                return []
-            changed = False
-            for item in history:
-                if isinstance(item, dict) and not item.get("id"):
-                    item["id"] = uuid.uuid4().hex
-                    changed = True
-            if changed:
-                save_traffic_history(history)
-            return history
-    except (json.JSONDecodeError, OSError):
-        return []
+
+    changed = False
+    for item in history:
+        if isinstance(item, dict) and not item.get("id"):
+            item["id"] = uuid.uuid4().hex
+            changed = True
+
+    history.sort(key=lambda item: ((item or {}).get("timestamp") or "", (item or {}).get("id") or ""))
+
+    if history and not docs:
+        changed = True
+
+    if changed:
+        save_traffic_history(history)
+    return history
 
 
 def save_traffic_history(history):
-    TRAFFIC_HISTORY_FILE.parent.mkdir(parents=True, exist_ok=True)
-    with open(TRAFFIC_HISTORY_FILE, "w", encoding="utf-8") as f:
-        json.dump({"history": history[-500:]}, f, indent=2)
+    history_ids = set()
+    collection = _firestore_collection("traffic_history")
+
+    for item in (history or [])[-500:]:
+        if not isinstance(item, dict):
+            continue
+        item_id = item.get("id") or uuid.uuid4().hex
+        if "id" not in item:
+            item["id"] = item_id
+        history_ids.add(item_id)
+        collection.document(item_id).set(item)
+
+    for doc in collection.stream():
+        if doc.id not in history_ids:
+            doc.reference.delete()
 
 
 def load_intersection_media():
-    if not INTERSECTION_MEDIA_FILE.exists():
-        return {}
-    try:
-        with open(INTERSECTION_MEDIA_FILE, "r", encoding="utf-8") as f:
-            data = f.read().strip()
-            if not data:
-                return {}
-            payload = json.loads(data)
-            media = payload.get("media", {})
-            return media if isinstance(media, dict) else {}
-    except (json.JSONDecodeError, OSError):
-        return {}
+    docs = list(_firestore_collection("intersection_media").stream())
+    if docs:
+        return {doc.id: doc.to_dict() for doc in docs}
+
+    media = _read_legacy_json(LEGACY_INTERSECTION_MEDIA_FILE, "media", {})
+    if isinstance(media, dict) and media:
+        save_intersection_media(media)
+        return media
+    return {}
 
 
 def save_intersection_media(media):
-    INTERSECTION_MEDIA_FILE.parent.mkdir(parents=True, exist_ok=True)
-    with open(INTERSECTION_MEDIA_FILE, "w", encoding="utf-8") as f:
-        json.dump({"media": media}, f, indent=2)
+    collection = _firestore_collection("intersection_media")
+    media = media if isinstance(media, dict) else {}
+    current_ids = set()
+
+    for intersection_id, payload in media.items():
+        if not intersection_id or not isinstance(payload, dict):
+            continue
+        current_ids.add(intersection_id)
+        collection.document(intersection_id).set(payload)
+
+    for doc in collection.stream():
+        if doc.id not in current_ids:
+            doc.reference.delete()
 
 
 def _peak_multiplier(hour):
@@ -1239,22 +1306,41 @@ def remove_intersection(intersection_id):
 
 
 def load_users():
-    if not USERS_FILE.exists():
-        return {}
-    try:
-        with open(USERS_FILE, "r", encoding="utf-8") as f:
-            data = f.read().strip()
-            if not data:
-                return {}
-            return json.loads(data)
-    except (json.JSONDecodeError, OSError):
-        return {}
+    docs = list(_firestore_collection("users").stream())
+    if docs:
+        users = {}
+        for doc in docs:
+            payload = doc.to_dict() or {}
+            email = (payload.get("email") or "").strip().lower()
+            if email:
+                users[email] = payload
+        return users
+
+    users = _read_legacy_json(LEGACY_USERS_FILE, None, {})
+    if isinstance(users, dict) and users:
+        save_users(users)
+        return users
+    return {}
 
 
 def save_users(users):
-    USERS_FILE.parent.mkdir(parents=True, exist_ok=True)
-    with open(USERS_FILE, "w", encoding="utf-8") as f:
-        json.dump(users, f, indent=2)
+    collection = _firestore_collection("users")
+    users = users if isinstance(users, dict) else {}
+    current_ids = set()
+
+    for email, payload in users.items():
+        normalized_email = (email or "").strip().lower()
+        if not normalized_email or not isinstance(payload, dict):
+            continue
+        doc_id = _email_doc_id(normalized_email)
+        payload_to_save = dict(payload)
+        payload_to_save["email"] = normalized_email
+        current_ids.add(doc_id)
+        collection.document(doc_id).set(payload_to_save)
+
+    for doc in collection.stream():
+        if doc.id not in current_ids:
+            doc.reference.delete()
 
 
 def get_user_by_email(email):
