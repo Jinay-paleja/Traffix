@@ -1,14 +1,16 @@
-# Git Push Progress to Master Branch
+# Fix Locked Repo - Progress Tracker
 
-**Current Status:** Plan approved. No merging - direct push flow.
+**Current branch:** manik (clean)
 
-**Steps from Plan:**
-- [ ] 1. Update TODO-git-push.md
-- [ ] 2. Stage changes (app.py, static/css/main.css, templates/, TODO-git-push.md)
-- [ ] 3. Commit changes
-- [ ] 4. Switch to master branch
-- [ ] 5. Add/commit/push updates to origin/master
-- [ ] 6. Verify status and test app
+## Steps:
+- [x] 1. Create this TODO.md ✓
+- [ ] 2. Update TODO-git-push.md
+- [ ] 3. git checkout master; git pull origin master
+- [ ] 4. git checkout manik; git status
+- [ ] 5. git checkout -b blackboxai/fix-locked-repo
+- [ ] 6. git push -u origin blackboxai/fix-locked-repo
+- [ ] 7. Update TODOs as resolved
+- [ ] 8. Verify: git status && git log --oneline -5
+- [ ] 9. Test app: python app.py
 
-**Next:** Execute staging and commit.
-
+**Next:** Windows uses ; not && for cmd chaining. Running checkout master.
