@@ -2,9 +2,9 @@
 {% block title %}{{ intersection.name }} Signal View - Traffix{% endblock %}
 {% block extra_css %}
 <style>
-  .wall-page{min-height:100vh;padding:18px;background:radial-gradient(circle at top,rgba(14,165,233,.12),transparent 28%),radial-gradient(circle at 80% 15%,rgba(34,197,94,.08),transparent 24%),linear-gradient(180deg,var(--bg-main) 0%,var(--bg-elevated) 100%)}
+  .wall-page{min-height:100vh;padding:18px;background:radial-gradient(circle at top,rgba(14,165,233,.12),transparent 28%),radial-gradient(circle at 80% 15%,rgba(34,197,94,.08),transparent 24%),linear-gradient(180deg,#05070a 0%,#020304 100%)}
   .wall-shell{max-width:1680px;margin:0 auto;display:grid;gap:14px}
-  .wall-card,.wall-tile{border:1px solid var(--panel-border);background:var(--panel-bg);box-shadow:var(--shadow-soft)}
+  .wall-card,.wall-tile{border:1px solid rgba(148,163,184,.14);background:linear-gradient(180deg,rgba(15,23,42,.72),rgba(5,9,16,.88));box-shadow:0 24px 80px rgba(0,0,0,.34)}
   .wall-card{padding:18px 20px;border-radius:24px}
   .wall-topbar{display:flex;justify-content:space-between;align-items:flex-start;gap:18px;flex-wrap:wrap}
   .wall-title{font-size:clamp(1.8rem,3vw,3rem);font-weight:800;line-height:1.03;letter-spacing:-.05em;margin:6px 0}
@@ -47,25 +47,9 @@
   .tile-stat-label{text-transform:uppercase;letter-spacing:.08em;font-size:.66rem;color:rgba(255,255,255,.5)}
   .tile-stat-value{margin-top:4px;font-size:.92rem;font-weight:700;color:#f8fafc}
   .empty-wall{padding:48px 24px;text-align:center;color:var(--text-secondary)}
-  .empty-wall strong{display:block;color:var(--text-primary);font-size:1.08rem;margin-bottom:8px}
+  .empty-wall strong{display:block;color:#f8fafc;font-size:1.08rem;margin-bottom:8px}
   @media (max-width:1024px){.wall-summary{grid-template-columns:1fr}.wall-stats{grid-template-columns:1fr 1fr}}
   @media (max-width:700px){.wall-stats,.tile-stats{grid-template-columns:1fr}}
-
-  /* Light mode: remove the "always dark" tile treatment so it doesn't look out of place. */
-  :root.light-mode .wall-tile{
-    background:
-      linear-gradient(180deg, rgba(255,255,255,.92), rgba(241,245,249,.92)),
-      repeating-linear-gradient(-45deg, rgba(15,23,42,.03) 0, rgba(15,23,42,.03) 10px, transparent 10px, transparent 22px);
-    border-color: rgba(15,23,42,.14);
-  }
-  :root.light-mode .tile-header,
-  :root.light-mode .tile-footer{
-    background: linear-gradient(180deg, rgba(248,250,252,.88) 0%, rgba(248,250,252,.60) 72%, rgba(248,250,252,0) 100%);
-  }
-  :root.light-mode .tile-meta{ color: rgba(15,23,42,.62); }
-  :root.light-mode .tile-stat{ background: rgba(255,255,255,.72); border-color: rgba(15,23,42,.12); }
-  :root.light-mode .tile-stat-label{ color: rgba(15,23,42,.58); }
-  :root.light-mode .tile-stat-value{ color: var(--text-primary); }
 </style>
 {% endblock %}
 {% block body %}

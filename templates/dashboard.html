@@ -4,14 +4,18 @@
 <style>
   .dash-layout {
     display: grid;
-    gap: var(--space-8);
+    gap: 24px;
   }
   .dash-kpis {
-    grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 16px;
   }
   .dash-kpis .stat-card {
     position: relative;
     overflow: hidden;
+    padding: 18px 20px;
+    min-height: auto;
   }
   .dash-kpis .stat-card::after {
     content: "";
@@ -25,16 +29,51 @@
   }
   .dash-grid {
     display: grid;
-    grid-template-columns: 1.1fr 0.9fr;
-    gap: var(--space-6);
+    grid-template-columns: minmax(0, 1.8fr) minmax(320px, 1fr);
+    gap: 24px;
     align-items: start;
   }
+  .next-actions {
+    display: grid;
+    gap: 12px;
+  }
+  .next-action {
+    border-radius: 14px;
+    padding: 14px 16px;
+    border: 1px solid var(--panel-border);
+    background: var(--panel-bg-solid);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    flex-wrap: wrap;
+  }
+  .next-action strong { font-weight: 800; }
+  .next-action-copy { color: var(--text-secondary); font-size: 0.9rem; }
+  .next-action-left { display: grid; gap: 4px; }
+  .next-action-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 10px;
+    border-radius: 999px;
+    font-size: 0.78rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    border: 1px solid rgba(255,255,255,0.10);
+    background: rgba(255,255,255,0.04);
+    color: var(--text-secondary);
+  }
+  .next-action-pill.bad { background: rgba(248, 113, 113, 0.14); border-color: rgba(248, 113, 113, 0.22); color: #fca5a5; }
+  .next-action-pill.warn { background: rgba(251, 191, 36, 0.14); border-color: rgba(251, 191, 36, 0.22); color: #fde68a; }
+  .next-action-pill.good { background: rgba(52, 211, 153, 0.14); border-color: rgba(52, 211, 153, 0.22); color: #86efac; }
   .dash-panel-header {
     display: flex;
     justify-content: space-between;
-    gap: var(--space-4);
+    gap: 12px;
     align-items: flex-start;
-    margin-bottom: var(--space-6);
+    margin-bottom: 20px;
     flex-wrap: wrap;
   }
   .dash-panel-copy {
@@ -42,19 +81,20 @@
     font-size: 0.96rem;
     max-width: 62ch;
   }
-  .alert-list,
-  .action-list,
-  .priority-list {
+  .alert-list {
     display: grid;
-    gap: var(--space-4);
+    gap: 12px;
   }
-  .alert-card,
-  .action-card,
-  .priority-card {
-    border-radius: 20px;
-    padding: 18px;
-    border: 1px solid rgba(255,255,255,0.08);
-    background: rgba(255,255,255,0.025);
+  .alert-card {
+    border-radius: 12px;
+    padding: 14px 18px;
+    border: 1px solid var(--panel-border);
+    background: var(--panel-bg-solid);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
   }
   .alert-card.error {
     border-color: rgba(248, 113, 113, 0.28);
@@ -64,74 +104,99 @@
     border-color: rgba(251, 191, 36, 0.24);
     background: rgba(251, 191, 36, 0.07);
   }
-  .alert-title,
-  .action-title,
+  .alert-main {
+    flex: 1;
+  }
+  .alert-title {
+    font-weight: 700;
+    margin-bottom: 4px;
+    font-size: 1rem;
+  }
+  .alert-copy {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    line-height: 1.5;
+  }
+  .alert-actions {
+    display: flex;
+    gap: 8px;
+  }
+  
+  /* Priority Rows */
+  .priority-list {
+    display: grid;
+    gap: 10px;
+    margin-top: 16px;
+  }
+  .priority-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    padding: 12px 18px;
+    border-radius: 12px;
+    background: var(--panel-bg-solid);
+    border: 1px solid var(--panel-border);
+    transition: background 0.2s ease, border-color 0.2s ease;
+    flex-wrap: wrap;
+  }
+  .priority-row:hover {
+    background: var(--panel-bg);
+    border-color: rgba(116, 34, 230, 0.4);
+  }
+  .priority-main {
+    display: grid;
+    gap: 4px;
+  }
   .priority-title {
     font-weight: 700;
-    margin-bottom: 6px;
-  }
-  .alert-copy,
-  .action-copy,
-  .priority-copy {
-    color: var(--text-secondary);
-    font-size: 0.95rem;
-    line-height: 1.65;
-  }
-  .alert-actions,
-  .priority-actions {
-    display: flex;
-    gap: 10px;
-    flex-wrap: wrap;
-    margin-top: 14px;
-  }
-  .alert-empty {
-    padding: 22px;
-    border-radius: 20px;
-    background: rgba(52, 211, 153, 0.08);
-    border: 1px solid rgba(52, 211, 153, 0.18);
-    color: var(--success);
-    font-weight: 600;
+    font-size: 1rem;
   }
   .priority-meta {
     display: flex;
-    gap: 10px;
+    gap: 8px;
+    align-items: center;
     flex-wrap: wrap;
-    margin: 10px 0 0;
-  }
-  .priority-note {
-    margin-top: 12px;
-    color: var(--text-secondary);
-    font-size: 0.92rem;
-    line-height: 1.55;
-  }
-  .priority-note strong {
-    color: var(--text-primary);
+    font-size: 0.85rem;
   }
   .priority-pill {
-    display: inline-flex;
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-weight: 600;
+    background: rgba(255,255,255,0.06);
+    color: var(--text-muted);
+  }
+  .priority-pill.good { background: rgba(52, 211, 153, 0.12); color: var(--success); }
+  .priority-pill.warn { background: rgba(251, 191, 36, 0.12); color: var(--warning); }
+  .priority-pill.bad { background: rgba(248, 113, 113, 0.16); color: var(--error); }
+  
+  /* Flat Lists */
+  .flat-list {
+    display: grid;
+    gap: 1px;
+    background: var(--panel-border); /* acts as border */
+    border-radius: 12px;
+    overflow: hidden;
+  }
+  .flat-item {
+    background: var(--panel-bg-solid);
+    padding: 14px 18px;
+    display: flex;
+    justify-content: space-between;
     align-items: center;
-    gap: 6px;
-    padding: 6px 10px;
-    border-radius: 999px;
-    font-size: 0.78rem;
-    font-weight: 700;
-    letter-spacing: 0.03em;
-    background: rgba(255,255,255,0.05);
+    gap: 12px;
+  }
+  .flat-item-title {
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+  .flat-item-copy {
     color: var(--text-secondary);
+    font-size: 0.88rem;
+    margin-top: 2px;
   }
-  .priority-pill.good {
-    background: rgba(52, 211, 153, 0.12);
-    color: var(--success);
-  }
-  .priority-pill.warn {
-    background: rgba(251, 191, 36, 0.12);
-    color: var(--warning);
-  }
-  .priority-pill.bad {
-    background: rgba(248, 113, 113, 0.12);
-    color: var(--error);
-  }
-  @media (max-width: 920px) {
+  
+  @media (max-width: 1040px) {
     .dash-grid {
       grid-template-columns: 1fr;
     }
@@ -144,7 +209,7 @@
 
 <main class="page-shell">
   <div class="container">
-    <section class="page-hero">
+    <section class="page-hero stagger-1">
       <div class="page-hero-copy">
         <div class="page-eyebrow">Operations overview</div>
         <h1 class="page-title">Welcome back, {{ user_name }}</h1>
@@ -152,139 +217,187 @@
       </div>
       <div class="page-actions">
         <a href="{{ url_for('intersections') }}" class="btn btn-primary">Manage intersections</a>
-        <a href="{{ url_for('profile') }}" class="btn btn-secondary">View profile</a>
+        <a href="{{ url_for('profile') }}" class="btn btn-ghost">Settings</a>
       </div>
     </section>
 
     <section class="dash-layout">
-      <div class="stat-grid dash-kpis">
+      <!-- Top Row: Compact KPIs -->
+      <div class="dash-kpis stagger-2">
         <article class="stat-card">
           <div class="label">Total intersections</div>
           <div class="value">{{ stats.intersections }}</div>
-          <div class="hint">Configured network nodes</div>
-        </article>
-        <article class="stat-card">
-          <div class="label">Total cameras</div>
-          <div class="value">{{ stats.sensors }}</div>
-          <div class="hint">Lane cameras in the system</div>
         </article>
         <article class="stat-card">
           <div class="label">Active cameras</div>
           <div class="value">{{ stats.active_signals }}</div>
-          <div class="hint">Feeds ready for monitoring</div>
         </article>
         <article class="stat-card">
           <div class="label">Offline cameras</div>
-          <div class="value">{{ stats.offline_cameras }}</div>
-          <div class="hint">Need attention or re-enable</div>
+          <div class="value" style="color: {% if stats.offline_cameras > 0 %}var(--error){% else %}inherit{% endif %}">{{ stats.offline_cameras }}</div>
         </article>
         <article class="stat-card">
           <div class="label">Fresh analyses</div>
           <div class="value">{{ stats.fresh_analyses }}</div>
-          <div class="hint">Updated in the last 24 hours</div>
         </article>
         <article class="stat-card">
           <div class="label">Stale analyses</div>
-          <div class="value">{{ stats.stale_analyses }}</div>
-          <div class="hint">Need a newer traffic run</div>
+          <div class="value" style="color: {% if stats.stale_analyses > 0 %}var(--warning){% else %}inherit{% endif %}">{{ stats.stale_analyses }}</div>
         </article>
       </div>
 
-      <div class="dash-grid">
-        <section class="surface-panel section-block">
-          <div class="dash-panel-header">
-            <div>
-              <div class="section-kicker">Critical alerts</div>
-              <h2 class="section-title">What needs attention</h2>
-            </div>
-            <div class="dash-panel-copy">These are the most important issues detected from intersection status and camera availability right now.</div>
-          </div>
-
-          {% if alerts %}
-          <div class="alert-list">
-            {% for alert in alerts %}
-            <article class="alert-card {{ alert.tone }}">
-              <div class="alert-title">{{ alert["title"] }}</div>
-              <div class="alert-copy">{{ alert["copy"] }}</div>
-              <div class="alert-actions">
-                <a href="{{ url_for('intersection_detail', intersection_id=alert["intersection_id"]) }}" class="btn btn-secondary"><span class="icon-inline"><svg viewBox="0 0 24 24"><use href="#icon-overview"/></svg></span>Open overview</a>
-                <a href="{{ url_for('intersection_monitor', intersection_id=alert["intersection_id"]) }}" class="btn btn-ghost"><span class="icon-inline"><svg viewBox="0 0 24 24"><use href="#icon-monitor"/></svg></span>Live monitor</a>
+      <!-- Main Layout: 65% Primary, 35% Secondary -->
+      <div class="dash-grid stagger-3">
+        <!-- PRIMARY COLUMN (65%) -->
+        <div style="display: grid; gap: 24px;">
+          <!-- Next actions -->
+          <section class="surface-panel section-block" style="padding: 24px;">
+            <div class="dash-panel-header" style="margin-bottom: 12px;">
+              <div>
+                <h2 class="section-title">Next actions</h2>
+                <div class="dash-panel-copy" style="max-width:none;">Do these first to stabilize the network and improve decision quality.</div>
               </div>
-            </article>
-            {% endfor %}
-          </div>
-          {% else %}
-          <div class="alert-empty">No critical alerts right now. The network is looking stable.</div>
-          {% endif %}
-        </section>
-
-        <aside class="surface-panel section-block">
-          <div class="dash-panel-header">
-            <div>
-              <div class="section-kicker">Network status</div>
-              <h2 class="section-title">Operational summary</h2>
             </div>
-            <div class="dash-panel-copy">A quick snapshot of overall system health so you can decide whether to inspect alerts or jump straight into intersection overviews.</div>
-          </div>
+            <div class="next-actions">
+              <article class="next-action">
+                <div class="next-action-left">
+                  <div class="next-action-pill {{ 'bad' if stats.offline_cameras > 0 else 'good' }}">
+                    {{ stats.offline_cameras }} offline camera{{ 's' if stats.offline_cameras != 1 else '' }}
+                  </div>
+                  <div><strong>Turn on offline cameras</strong></div>
+                  <div class="next-action-copy">Restore coverage so live monitoring and analysis stays reliable.</div>
+                </div>
+                <div class="alert-actions">
+                  <a href="{{ url_for('intersections') }}?focus=offline" class="btn btn-primary btn-compact">Review</a>
+                </div>
+              </article>
 
-          <div class="action-list">
-            <article class="action-card">
-              <div class="action-title">Healthy intersections</div>
-              <div class="action-copy">{{ stats.healthy_intersections }} intersections are fully active with all configured cameras online.</div>
-            </article>
-            <article class="action-card">
-              <div class="action-title">Maintenance</div>
-              <div class="action-copy">{{ stats.maintenance }} intersections are marked for review or maintenance work.</div>
-            </article>
-            <article class="action-card">
-              <div class="action-title">Analysis freshness</div>
-              <div class="action-copy">{{ stats.fresh_analyses }} intersections have fresh signal data, while {{ stats.stale_analyses }} need a new analysis pass.</div>
-            </article>
+              <article class="next-action">
+                <div class="next-action-left">
+                  <div class="next-action-pill {{ 'warn' if stats.stale_analyses > 0 else 'good' }}">
+                    {{ stats.stale_analyses }} stale location{{ 's' if stats.stale_analyses != 1 else '' }}
+                  </div>
+                  <div><strong>Run fresh analyses</strong></div>
+                  <div class="next-action-copy">Update traffic inputs so timing decisions reflect current demand.</div>
+                </div>
+                <div class="alert-actions">
+                  <a href="{{ url_for('intersections') }}?focus=stale" class="btn btn-secondary btn-compact">Open list</a>
+                </div>
+              </article>
+
+              <article class="next-action">
+                <div class="next-action-left">
+                  <div class="next-action-pill {{ 'bad' if stats.maintenance > 0 else 'good' }}">
+                    {{ stats.maintenance }} maintenance
+                  </div>
+                  <div><strong>Resolve maintenance intersections</strong></div>
+                  <div class="next-action-copy">Clear flagged sites to reduce blind spots and false alerts.</div>
+                </div>
+                <div class="alert-actions">
+                  <a href="{{ url_for('intersections') }}?focus=maintenance" class="btn btn-ghost btn-compact">View</a>
+                </div>
+              </article>
+            </div>
+          </section>
+
+          <!-- Critical Alerts -->
+          <section class="surface-panel section-block" style="padding: 24px;">
+            <div class="dash-panel-header" style="margin-bottom: 16px;">
+              <div>
+                <h2 class="section-title">Critical alerts</h2>
+              </div>
+            </div>
+            {% if alerts %}
+            <div class="alert-list">
+              {% for alert in alerts %}
+              <article class="alert-card {{ alert.tone }}">
+                <div class="alert-main">
+                  <div class="alert-title">{{ alert["title"] }}</div>
+                  <div class="alert-copy">{{ alert["copy"] }}</div>
+                </div>
+                <div class="alert-actions">
+                  <a href="{{ url_for('intersection_detail', intersection_id=alert["intersection_id"]) }}" class="btn btn-secondary btn-compact">Overview</a>
+                  <a href="{{ url_for('intersection_monitor', intersection_id=alert["intersection_id"]) }}" class="btn btn-primary btn-compact">Live</a>
+                </div>
+              </article>
+              {% endfor %}
+            </div>
+            {% else %}
+            <div class="alert-empty" style="padding: 16px; border-radius: 12px; background: rgba(52, 211, 153, 0.08); color: var(--success); font-weight: 600;">
+              No critical alerts right now. The network is looking stable.
+            </div>
+            {% endif %}
+          </section>
+
+          <!-- Priority Intersections (Dense Rows) -->
+          <details class="surface-panel section-block" style="padding: 24px;" {% if alerts %}{% else %}open{% endif %}>
+            <summary class="dash-panel-header" style="margin-bottom: 12px; cursor: pointer; list-style: none;">
+              <div>
+                <h2 class="section-title" style="margin-bottom:0;">Priority intersections</h2>
+                <div class="dash-panel-copy" style="max-width:none;">Highest urgency score locations. Expand when you’re ready to drill in.</div>
+              </div>
+              <span class="priority-pill" style="align-self:center;">{{ priority_intersections|length }} items</span>
+            </summary>
+            <div class="priority-list" style="margin-top: 8px;">
+              {% for item in priority_intersections %}
+              <article class="priority-row">
+                <div class="priority-main">
+                  <div class="priority-title">{{ item.name }}</div>
+                  <div class="priority-meta">
+                    <span class="priority-pill {{ 'bad' if item.status == 'maintenance' else 'good' if item.camera_offline == 0 else 'warn' }}">{{ item.status|title }}</span>
+                    <span style="color: var(--text-secondary)">{{ item.camera_active }}/{{ item.camera_total }} feeds</span>
+                    <span class="priority-pill {{ item.analysis_snapshot.freshness_tone }}">{{ item.analysis_snapshot.freshness_label }}</span>
+                  </div>
+                </div>
+                <div class="alert-actions">
+                  <a href="{{ url_for('intersection_detail', intersection_id=item.id) }}" class="btn btn-ghost btn-compact">Details</a>
+                  <a href="{{ url_for('intersection_monitor', intersection_id=item.id) }}" class="btn btn-secondary btn-compact">Monitor</a>
+                </div>
+              </article>
+              {% endfor %}
+            </div>
+          </details>
+        </div>
+
+        <!-- SECONDARY COLUMN (35%) -->
+        <aside class="surface-panel section-block" style="padding: 24px; position: sticky; top: 92px;">
+          <div class="dash-panel-header" style="margin-bottom: 16px;">
+            <div>
+              <h2 class="section-title">Operations status</h2>
+            </div>
+          </div>
+          <div class="flat-list">
+            <div class="flat-item">
+              <div>
+                <div class="flat-item-title">Healthy nodes</div>
+                <div class="flat-item-copy">Fully active with all cameras online.</div>
+              </div>
+              <div style="font-size: 1.25rem; font-weight: 800; color: var(--success);">{{ stats.healthy_intersections }}</div>
+            </div>
+            <div class="flat-item">
+              <div>
+                <div class="flat-item-title">Maintenance</div>
+                <div class="flat-item-copy">Marked for review or repairs.</div>
+              </div>
+              <div style="font-size: 1.25rem; font-weight: 800; color: var(--error);">{{ stats.maintenance }}</div>
+            </div>
+            <div class="flat-item">
+              <div>
+                <div class="flat-item-title">Fresh analyses</div>
+                <div class="flat-item-copy">Traffic data updated in 24h.</div>
+              </div>
+              <div style="font-size: 1.25rem; font-weight: 800; color: var(--text-primary);">{{ stats.fresh_analyses }}</div>
+            </div>
+            <div class="flat-item">
+              <div>
+                <div class="flat-item-title">Stale locations</div>
+                <div class="flat-item-copy">Needs new analysis pass immediately.</div>
+              </div>
+              <div style="font-size: 1.25rem; font-weight: 800; color: var(--warning);">{{ stats.stale_analyses }}</div>
+            </div>
           </div>
         </aside>
       </div>
-
-      <section class="surface-panel section-block">
-        <div class="dash-panel-header">
-          <div>
-            <div class="section-kicker">Direct links</div>
-            <h2 class="section-title">Priority intersections</h2>
-          </div>
-          <div class="dash-panel-copy">Open the intersections with the highest urgency score, then jump straight into overview or live monitoring.</div>
-        </div>
-
-        <div class="priority-list">
-          {% for item in priority_intersections %}
-          <article class="priority-card">
-            <div class="priority-title">{{ item.name }}</div>
-            <div class="priority-copy">{{ item.location }}</div>
-            <div class="priority-meta">
-              <span class="priority-pill {{ 'bad' if item.status == 'maintenance' else 'good' if item.camera_offline == 0 else 'warn' }}">
-                {{ item.status|title }}
-              </span>
-              <span class="priority-pill {{ 'good' if item.camera_offline == 0 else 'warn' if item.camera_active > 0 else 'bad' }}">
-                {{ item.camera_active }}/{{ item.camera_total }} cameras active
-              </span>
-              <span class="priority-pill {{ item.analysis_snapshot.freshness_tone }}">
-                {{ item.analysis_snapshot.freshness_label }}
-              </span>
-            </div>
-            <div class="priority-note">
-              <strong>{{ item.analysis_snapshot.last_analysis_relative }}</strong>
-              {% if item.analysis_snapshot.has_analysis %}
-              · {{ item.analysis_snapshot.analysis_mode_label }} · {{ item.analysis_snapshot.total_vehicles }} vehicles detected
-              {% else %}
-              · Run a signal analysis to generate timing recommendations
-              {% endif %}
-            </div>
-            <div class="priority-actions">
-              <a href="{{ url_for('intersection_detail', intersection_id=item.id) }}" class="btn btn-secondary"><span class="icon-inline"><svg viewBox="0 0 24 24"><use href="#icon-overview"/></svg></span>Open overview</a>
-              <a href="{{ url_for('intersection_monitor', intersection_id=item.id) }}" class="btn btn-primary"><span class="icon-inline"><svg viewBox="0 0 24 24"><use href="#icon-monitor"/></svg></span>Live monitor</a>
-            </div>
-          </article>
-          {% endfor %}
-        </div>
-      </section>
     </section>
   </div>
 </main>

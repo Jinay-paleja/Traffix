@@ -2,15 +2,36 @@
 {% block title %}Intersections – Traffix{% endblock %}
 {% block extra_css %}
 <style>
-
+  .add-form-card {
+    margin-bottom: var(--space-8);
+  }
+  .add-form-card h3 {
+    font-size: 1.125rem;
+    margin-bottom: var(--space-4);
+  }
+  .add-form {
+    display: grid;
+    grid-template-columns: 2fr 2fr 1fr auto;
+    gap: var(--space-4);
+    align-items: end;
+  }
+  @media (max-width: 700px) {
+    .add-form { grid-template-columns: 1fr; }
+  }
+  .add-form .input-group {
+    margin-bottom: 0;
+  }
+  .add-form .input-group input {
+    padding: 12px 16px;
+  }
   .intersections-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
     gap: var(--space-6);
   }
   .intersection-card {
-    background: var(--panel-bg);
-    border: 1px solid var(--panel-border);
+    background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.015));
+    border: 1px solid rgba(255,255,255,0.08);
     border-radius: var(--radius-lg);
     padding: 24px;
     transition: all var(--transition);
@@ -20,7 +41,7 @@
     box-shadow: var(--shadow-soft);
   }
   .intersection-card:hover {
-    border-color: rgba(116, 34, 230, 0.34);
+    border-color: rgba(255,255,255,0.16);
     transform: translateY(-4px);
     box-shadow: var(--shadow), var(--shadow-glow);
   }
@@ -113,7 +134,7 @@
     gap: 8px;
     margin-bottom: 16px;
     padding-top: 16px;
-    border-top: 1px solid var(--panel-border);
+    border-top: 1px solid var(--border);
   }
   .intersection-card .graphic-preview {
     margin: 14px 0 16px;
@@ -128,8 +149,8 @@
     max-width: 360px;
     aspect-ratio: 16 / 9;
     border-radius: var(--radius);
-    background: var(--panel-bg-solid);
-    border: 1px solid var(--panel-border);
+    background: rgba(56, 189, 248, 0.06);
+    border: 1px solid rgba(148, 163, 184, 0.16);
     overflow: hidden;
   }
   .mini-intersection .center {
@@ -140,8 +161,8 @@
     height: 44px;
     transform: translate(-50%, -50%);
     border-radius: 14px;
-    background: rgba(15, 23, 42, 0.55);
-    border: 1px solid rgba(148, 163, 184, 0.22);
+    background: rgba(15, 23, 42, 0.65);
+    border: 1px solid rgba(148, 163, 184, 0.2);
   }
   .mini-road {
     position: absolute;
@@ -151,9 +172,9 @@
     height: 10px;
     transform-origin: left center;
     transform: translateY(-50%);
-    background: rgba(148, 163, 184, 0.18);
+    background: rgba(148, 163, 184, 0.14);
     border-radius: 999px;
-    border: 1px solid rgba(148, 163, 184, 0.14);
+    border: 1px solid rgba(148, 163, 184, 0.12);
   }
   .mini-road.r-north { transform: translateY(-50%) rotate(-90deg); }
   .mini-road.r-south { transform: translateY(-50%) rotate(90deg); }
@@ -207,14 +228,14 @@
     display: flex;
     gap: 20px;
     padding-top: 16px;
-    border-top: 1px solid var(--panel-border);
+    border-top: 1px solid rgba(255,255,255,0.08);
   }
   .intersection-insight {
     margin-bottom: 16px;
     padding: 14px 16px;
     border-radius: 18px;
-    background: var(--panel-bg-solid);
-    border: 1px solid var(--panel-border);
+    background: rgba(255,255,255,0.025);
+    border: 1px solid rgba(255,255,255,0.06);
   }
   .intersection-insight-title {
     font-size: 0.75rem;
@@ -261,29 +282,6 @@
     color: var(--text-secondary);
     max-width: 56ch;
   }
-
-  .focus-strip {
-    display: none;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    padding: 12px 14px;
-    border-radius: 14px;
-    border: 1px solid var(--panel-border);
-    background: var(--panel-bg-solid);
-  }
-  .focus-strip.show { display: flex; }
-  .focus-strip strong { font-weight: 800; }
-  .focus-strip span { color: var(--text-secondary); font-size: 0.92rem; }
-
-  :root.light-mode .mini-intersection .center {
-    background: rgba(15, 23, 42, 0.10);
-    border-color: rgba(15, 23, 42, 0.14);
-  }
-  :root.light-mode .mini-node {
-    background: rgba(255,255,255,0.72);
-    border-color: rgba(15, 23, 42, 0.12);
-  }
 </style>
 {% endblock %}
 {% block body %}
@@ -299,27 +297,27 @@
         <p class="page-subtitle">Manage every intersection from one place, add new sites, and jump into lane-level camera controls without crowding the page.</p>
       </div>
       <div class="page-actions">
-        <button onclick="document.getElementById('addModal').showModal()" class="btn btn-primary">Add intersection</button>
+        <a href="#add-intersection" class="btn btn-primary">Add intersection</a>
         <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">Back to dashboard</a>
       </div>
     </section>
 
-    <dialog id="addModal">
-      <div class="dialog-header">
-        <h2 class="dialog-title">Add intersection</h2>
-        <button class="dialog-close" onclick="document.getElementById('addModal').close()" aria-label="Close modal">&times;</button>
+    <section class="surface-panel section-block add-form-card" id="add-intersection">
+      <div class="section-heading">
+        <div>
+          <div class="section-kicker">Primary action</div>
+          <h2 class="section-title">Add a new intersection</h2>
+        </div>
       </div>
-      <form action="{{ url_for('intersection_add') }}" method="post">
+      <form class="add-form" action="{{ url_for('intersection_add') }}" method="post">
         <div class="input-group">
-          <label>Intersection name</label>
-          <input type="text" name="name" placeholder="e.g., Main St & 5th Ave" required />
+          <input type="text" name="name" placeholder="Intersection name (e.g., Main St & 5th Ave)" required />
         </div>
         <div class="input-group">
-          <label>Location</label>
-          <input type="text" name="location" placeholder="e.g., Downtown District" required />
+          <input type="text" name="location" placeholder="Location (e.g., Downtown District)" required />
         </div>
         <div class="input-group">
-          <label>Number of connecting roads</label>
+          <label>Roads</label>
           <select name="num_roads" required>
             <option value="">Select...</option>
             <option value="3">3 Roads (T-junction)</option>
@@ -328,35 +326,18 @@
             <option value="6">6 Roads</option>
           </select>
         </div>
-        <div style="margin-top: 32px; display: flex; justify-content: flex-end; gap: 12px;">
-          <button type="button" class="btn btn-ghost" onclick="document.getElementById('addModal').close()">Cancel</button>
-          <button type="submit" class="btn btn-primary">Add Intersection</button>
-        </div>
+        <button type="submit" class="btn btn-primary">Add Intersection</button>
       </form>
-    </dialog>
+    </section>
 
     {% if intersections %}
     <section class="section-stack">
     <div class="intersections-toolbar">
       <div class="intersections-toolbar-copy">Each card summarizes status, lane coverage, and camera activity so you can scan the network quickly before opening details.</div>
     </div>
-    <div id="focusStrip" class="focus-strip">
-      <div>
-        <strong id="focusTitle">Filtered</strong>
-        <span id="focusDesc"></span>
-      </div>
-      <button type="button" class="btn btn-ghost btn-compact" id="clearFocusBtn">Clear filter</button>
-    </div>
     <div class="intersections-grid">
       {% for intersection in intersections %}
-      {% set offline = intersection.lanes|rejectattr('camera.status')|list|length %}
-      <a
-        href="{{ url_for('intersection_detail', intersection_id=intersection.id) }}"
-        class="intersection-card"
-        data-offline="{{ offline }}"
-        data-status="{{ intersection.status }}"
-        data-freshness="{{ intersection.analysis_snapshot.freshness_tone }}"
-      >
+      <a href="{{ url_for('intersection_detail', intersection_id=intersection.id) }}" class="intersection-card">
         <div class="int-header">
           <div>
             <div class="int-name">{{ intersection.name }}</div>
@@ -430,52 +411,4 @@
     {% endif %}
   </div>
 </main>
-{% endblock %}
-
-{% block extra_js %}
-<script>
-  (function () {
-    const params = new URLSearchParams(window.location.search);
-    const focus = (params.get("focus") || "").toLowerCase();
-    const cards = Array.from(document.querySelectorAll(".intersection-card"));
-    const strip = document.getElementById("focusStrip");
-    const title = document.getElementById("focusTitle");
-    const desc = document.getElementById("focusDesc");
-    const clearBtn = document.getElementById("clearFocusBtn");
-
-    function matches(card) {
-      const offline = parseInt(card.getAttribute("data-offline") || "0", 10);
-      const status = (card.getAttribute("data-status") || "").toLowerCase();
-      const freshness = (card.getAttribute("data-freshness") || "").toLowerCase();
-      if (focus === "offline") return offline > 0;
-      if (focus === "maintenance") return status === "maintenance";
-      if (focus === "stale") return freshness === "bad";
-      return true;
-    }
-
-    function apply() {
-      if (!focus || !["offline", "maintenance", "stale"].includes(focus)) return;
-      const shown = cards.filter((c) => matches(c));
-      cards.forEach((c) => (c.style.display = matches(c) ? "" : "none"));
-      strip.classList.add("show");
-      if (focus === "offline") {
-        title.textContent = "Offline cameras";
-        desc.textContent = `Showing intersections with at least one disabled camera (${shown.length} match${shown.length === 1 ? "" : "es"}).`;
-      } else if (focus === "maintenance") {
-        title.textContent = "Maintenance";
-        desc.textContent = `Showing intersections marked for review (${shown.length} match${shown.length === 1 ? "" : "es"}).`;
-      } else if (focus === "stale") {
-        title.textContent = "Stale analyses";
-        desc.textContent = `Showing intersections with stale analysis freshness (${shown.length} match${shown.length === 1 ? "" : "es"}).`;
-      }
-      clearBtn?.addEventListener("click", () => {
-        params.delete("focus");
-        const next = `${window.location.pathname}${params.toString() ? "?" + params.toString() : ""}`;
-        window.location.assign(next);
-      });
-    }
-
-    apply();
-  })();
-</script>
 {% endblock %}

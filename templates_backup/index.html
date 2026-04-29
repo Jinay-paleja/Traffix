@@ -7,49 +7,11 @@
     top: 0;
     left: 0;
     right: 0;
-    z-index: 100;
-    border-bottom: 1px solid transparent;
-    transition: all 0.3s ease;
   }
-  .site-header.scrolled {
-    background: rgba(12, 15, 20, 0.85);
-    backdrop-filter: blur(12px);
+  .site-header .nav-shell.scrolled {
+    background: rgba(12, 15, 20, 0.95);
     box-shadow: 0 18px 52px rgba(0, 0, 0, 0.36);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-  }
-  .landing-nav {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 20px 0;
-  }
-  .landing-brand {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    font-size: 1.25rem;
-    font-weight: 700;
-    color: var(--text-primary);
-  }
-  .landing-brand img {
-    height: 28px;
-  }
-  .landing-links {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-  }
-  .landing-links .nav-link {
-    color: var(--text-secondary);
-    font-weight: 500;
-    font-size: 0.95rem;
-    padding: 8px 16px;
-    border-radius: 999px;
-    transition: color 0.2s, background 0.2s;
-  }
-  .landing-links .nav-link:hover {
-    color: var(--text-primary);
-    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.12);
   }
   .hero {
     padding: 100px 0 120px;
@@ -175,16 +137,13 @@
 </style>
 {% endblock %}
 {% block body %}
-<header class="site-header" id="site-header">
-  <div class="container">
-    <nav class="landing-nav">
-      <a href="{{ url_for('index') }}" class="landing-brand">
-        <img src="{{ url_for('static', filename='images/traffix-mark.svg') }}" alt="" aria-hidden="true">
-        <span>Traff<span class="text-accent">ix</span></span>
-      </a>
-      <div class="landing-links">
-        <a href="#features" class="nav-link">Features</a>
-        <a href="#about" class="nav-link">About</a>
+<header class="site-header">
+  <div class="nav-shell" id="main-nav">
+    <nav class="nav container">
+      <a href="{{ url_for('index') }}" class="nav-brand"><img src="{{ url_for('static', filename='images/traffix-mark.svg') }}" alt="" class="nav-brand-mark" aria-hidden="true"><span class="nav-brand-text">Traff<span>ix</span></span></a>
+      <div class="nav-links">
+        <a href="#features" class="btn btn-ghost nav-link">Features</a>
+        <a href="#about" class="btn btn-ghost nav-link">About</a>
         {% if session.get('user_id') %}
           <a href="{{ url_for('dashboard') }}" class="btn btn-ghost">Dashboard</a>
           <a href="{{ url_for('logout') }}" class="btn btn-secondary">Log out</a>
@@ -196,11 +155,6 @@
     </nav>
   </div>
 </header>
-<script>
-  window.addEventListener('scroll', () => {
-    document.getElementById('site-header').classList.toggle('scrolled', window.scrollY > 20);
-  });
-</script>
 
 <main>
   <section class="hero">

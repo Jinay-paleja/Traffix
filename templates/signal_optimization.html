@@ -1,398 +1,140 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Signal Optimization - Traffix</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
-    <style>
-        body {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
+{% extends "base.html" %}
+{% block title %}Signal Optimization - Traffix{% endblock %}
 
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 20px;
-        }
+{% block extra_css %}
+<style>
+  .opt-shell { padding: var(--space-8) 24px 72px; min-height: 100vh; }
+  .opt-shell .container { max-width: 1100px; }
+  .opt-stack { display: grid; gap: var(--space-8); }
 
-        .optimization-header {
-            background: rgba(255, 255, 255, 0.95);
-            padding: 30px;
-            border-radius: 12px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-            margin-bottom: 30px;
-        }
+  .opt-form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: var(--space-4); }
+  .opt-field { padding: 16px; border-radius: 18px; background: var(--panel-bg-solid); border: 1px solid var(--panel-border); display: grid; gap: 10px; }
+  .opt-field-top { display:flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+  .opt-field-title { font-weight: 800; letter-spacing: -0.02em; }
+  .opt-field-meta { font-size: 0.82rem; color: var(--text-secondary); }
+  .opt-number { width: 100%; padding: 14px 16px; font: inherit; color: var(--text-main); background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: 999px; }
 
-        .optimization-header h1 {
-            color: #333;
-            margin: 0 0 10px 0;
-            font-size: 2.5em;
-        }
+  .opt-actions { display:flex; justify-content:flex-end; gap: 10px; flex-wrap: wrap; }
+  .opt-status { display:none; padding: 14px 16px; border-radius: var(--radius-sm); border: 1px solid rgba(255,255,255,0.08); }
+  .opt-status.show { display:block; }
 
-        .optimization-header p {
-            color: #666;
-            margin: 0;
-            font-size: 1.1em;
-        }
+  details.opt-details { border-radius: var(--radius-card); border: 1px solid var(--panel-border); background: var(--panel-bg); box-shadow: var(--shadow-soft); overflow:hidden; }
+  details.opt-details > summary { cursor:pointer; list-style:none; padding: 18px 20px; display:flex; justify-content: space-between; gap: 14px; align-items: baseline; }
+  details.opt-details > summary::-webkit-details-marker { display:none; }
+  .opt-summary-title { font-weight: 800; letter-spacing: -0.03em; }
+  .opt-summary-hint { color: var(--text-secondary); font-size: 0.9rem; }
+  .opt-details-body { padding: 0 20px 20px; }
 
-        .optimization-info {
-            background: rgba(255, 255, 255, 0.95);
-            padding: 20px;
-            border-radius: 12px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-            margin-bottom: 30px;
-        }
+  .opt-lane-grid { display:grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: var(--space-4); }
+  .opt-lane-card { padding: 18px; border-radius: 18px; background: linear-gradient(180deg, rgba(255,255,255,0.045), rgba(255,255,255,0.02)); border: 1px solid rgba(255,255,255,0.08); }
+  .opt-lane-card h3 { margin: 0; font-size: 1.1rem; letter-spacing: -0.03em; }
+  .opt-lane-metrics { display:grid; gap: 10px; margin-top: 14px; }
+  .opt-metric-row { display:flex; justify-content: space-between; gap: 12px; color: var(--text-secondary); font-size: 0.92rem; }
+  .opt-metric-row strong { color: var(--text-main); }
 
-        .info-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 20px;
-        }
+  .pill { display:inline-flex; align-items:center; padding: 6px 10px; border-radius: 999px; font-size: 0.78rem; font-weight: 800; letter-spacing: 0.04em; text-transform: uppercase; border: 1px solid rgba(255,255,255,0.10); background: rgba(255,255,255,0.04); color: var(--text-secondary); }
+  .pill.good { background: rgba(52, 211, 153, 0.14); border-color: rgba(52, 211, 153, 0.22); color: #86efac; }
+  .pill.warn { background: rgba(251, 191, 36, 0.14); border-color: rgba(251, 191, 36, 0.22); color: #fde68a; }
+  .pill.bad { background: rgba(248, 113, 113, 0.14); border-color: rgba(248, 113, 113, 0.22); color: #fca5a5; }
 
-        .info-card {
-            padding: 20px;
-            background: #f8f9fa;
-            border-radius: 8px;
-            border-left: 4px solid #667eea;
-        }
+  .opt-recs { display:grid; gap: 12px; }
+  .opt-rec { padding: 16px; border-radius: 18px; border: 1px solid rgba(255,255,255,0.08); background: rgba(255,255,255,0.03); }
+  .opt-rec-top { display:flex; justify-content: space-between; gap: 12px; align-items: baseline; flex-wrap: wrap; }
+  .opt-rec-title { font-weight: 800; letter-spacing: -0.02em; }
+  .opt-rec-msg { margin-top: 8px; color: var(--text-secondary); line-height: 1.7; }
+  .opt-rec-action { margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.08); color: var(--accent-hover); font-weight: 700; }
+</style>
+{% endblock %}
 
-        .info-card .label {
-            color: #999;
-            font-size: 0.9em;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            margin-bottom: 8px;
-        }
+{% block body %}
+<main class="opt-shell">
+  <div class="container opt-stack">
+    <a href="{{ url_for('intersections') }}" class="back-link">Back to Intersections</a>
 
-        .info-card .value {
-            color: #333;
-            font-size: 1.8em;
-            font-weight: 700;
-        }
-
-        .lanes-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 20px;
-            margin-bottom: 30px;
-        }
-
-        .lane-card {
-            background: rgba(255, 255, 255, 0.95);
-            padding: 25px;
-            border-radius: 12px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-            text-align: center;
-            transition: all 0.3s;
-        }
-
-        .lane-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 12px 48px rgba(0, 0, 0, 0.15);
-        }
-
-        .lane-name {
-            color: #667eea;
-            font-size: 1.3em;
-            font-weight: 700;
-            margin-bottom: 15px;
-            text-transform: capitalize;
-        }
-
-        .timing-info {
-            background: #f0f2ff;
-            padding: 15px;
-            border-radius: 8px;
-            margin: 15px 0;
-        }
-
-        .timing-label {
-            color: #999;
-            font-size: 0.85em;
-            text-transform: uppercase;
-            margin-bottom: 5px;
-        }
-
-        .green-time {
-            color: #4CAF50;
-            font-size: 2em;
-            font-weight: 700;
-            margin: 10px 0;
-        }
-
-        .signals-section {
-            background: rgba(255, 255, 255, 0.95);
-            padding: 30px;
-            border-radius: 12px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-            margin-bottom: 30px;
-        }
-
-        .signals-section h2 {
-            color: #667eea;
-            margin-top: 0;
-            margin-bottom: 20px;
-            font-size: 1.5em;
-            border-bottom: 2px solid #667eea;
-            padding-bottom: 10px;
-        }
-
-        .phase-timeline {
-            display: flex;
-            gap: 10px;
-            margin: 20px 0;
-            flex-wrap: wrap;
-        }
-
-        .phase-block {
-            flex: 1;
-            min-width: 100px;
-            padding: 20px;
-            border-radius: 8px;
-            text-align: center;
-            color: white;
-            font-weight: 600;
-            min-height: 80px;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            transition: all 0.3s;
-        }
-
-        .phase-block:hover {
-            transform: scale(1.05);
-            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
-        }
-
-        .phase-green {
-            background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
-        }
-
-        .phase-yellow {
-            background: linear-gradient(135deg, #FFC107 0%, #ffb300 100%);
-        }
-
-        .phase-red {
-            background: linear-gradient(135deg, #F44336 0%, #da190b 100%);
-        }
-
-        .phase-time {
-            font-size: 1.5em;
-            font-weight: 700;
-            margin: 5px 0;
-        }
-
-        .phase-label {
-            font-size: 0.85em;
-            opacity: 0.9;
-        }
-
-        .recommendations-section {
-            background: rgba(255, 255, 255, 0.95);
-            padding: 30px;
-            border-radius: 12px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-            margin-bottom: 30px;
-        }
-
-        .recommendations-section h2 {
-            color: #667eea;
-            margin-top: 0;
-            margin-bottom: 20px;
-            font-size: 1.5em;
-            border-bottom: 2px solid #667eea;
-            padding-bottom: 10px;
-        }
-
-        .recommendation-item {
-            padding: 20px;
-            background: #f8f9fa;
-            border-radius: 8px;
-            margin-bottom: 15px;
-            border-left: 4px solid #667eea;
-        }
-
-        .recommendation-item.critical {
-            border-left-color: #F44336;
-            background: #ffebee;
-        }
-
-        .recommendation-item.high {
-            border-left-color: #FF9800;
-            background: #fff3e0;
-        }
-
-        .recommendation-item.low {
-            border-left-color: #4CAF50;
-            background: #e8f5e9;
-        }
-
-        .recommendation-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 10px;
-        }
-
-        .recommendation-direction {
-            font-weight: 700;
-            color: #333;
-            font-size: 1.1em;
-        }
-
-        .recommendation-severity {
-            display: inline-block;
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-size: 0.85em;
-            font-weight: 600;
-            color: white;
-        }
-
-        .severity-critical {
-            background: #F44336;
-        }
-
-        .severity-high {
-            background: #FF9800;
-        }
-
-        .severity-low {
-            background: #4CAF50;
-        }
-
-        .recommendation-message {
-            color: #666;
-            margin: 10px 0;
-        }
-
-        .recommendation-action {
-            color: #667eea;
-            font-weight: 600;
-            padding: 8px 0;
-            border-top: 1px solid rgba(102, 126, 234, 0.2);
-            margin-top: 10px;
-            padding-top: 10px;
-        }
-
-        .nav-back {
-            display: inline-block;
-            margin-bottom: 20px;
-            color: white;
-            text-decoration: none;
-            font-weight: 600;
-            transition: all 0.3s;
-        }
-
-        .nav-back:hover {
-            transform: translateX(-5px);
-        }
-
-        .nav-back::before {
-            content: "← ";
-            margin-right: 5px;
-        }
-
-        .input-group {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 20px;
-            padding: 20px;
-            background: #f8f9fa;
-            border-radius: 8px;
-            margin-bottom: 20px;
-        }
-
-        .input-field {
-            display: flex;
-            flex-direction: column;
-        }
-
-        .input-field label {
-            margin-bottom: 8px;
-            color: #333;
-            font-weight: 600;
-        }
-
-        .input-field input {
-            padding: 10px;
-            border: 2px solid #e0e0e0;
-            border-radius: 6px;
-            font-size: 1em;
-            transition: border-color 0.3s;
-        }
-
-        .input-field input:focus {
-            outline: none;
-            border-color: #667eea;
-        }
-
-        .btn-optimize {
-            padding: 12px 30px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border: none;
-            border-radius: 6px;
-            font-size: 1.1em;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s;
-            align-self: flex-end;
-        }
-
-        .btn-optimize:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 24px rgba(102, 126, 234, 0.4);
-        }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <a href="{{ url_for('intersections') }}" class="nav-back">Back to Intersections</a>
-
-        <div class="optimization-header">
-            <h1>🚦 Signal Optimization</h1>
-            <p>{{ intersection.name }} - {{ intersection.location }}</p>
-        </div>
-
-        <!-- Input Section -->
-        <div class="optimization-info">
-            <h3 style="margin-top: 0; color: #667eea;">Enter Traffic Data for Each Direction</h3>
-            <div class="input-group" id="inputGroup">
-                <!-- Will be populated by JavaScript -->
-            </div>
-            <button class="btn-optimize" id="optimizeBtn">Calculate Optimal Timing</button>
-        </div>
-
-        <!-- Results Section -->
-        <div id="resultsSection" style="display: none;">
-            <!-- Lanes Grid -->
-            <div class="lanes-grid" id="lanesGrid">
-                <!-- Will be populated by JavaScript -->
-            </div>
-
-            <!-- Signal Schedule -->
-            <div class="signals-section" id="scheduleSection" style="display: none;">
-                <h2>⏱️ Signal Schedule</h2>
-                <div id="scheduleContent">
-                    <!-- Will be populated by JavaScript -->
-                </div>
-            </div>
-
-            <!-- Recommendations -->
-            <div class="recommendations-section" id="recommendationsSection" style="display: none;">
-                <h2>💡 AI Recommendations</h2>
-                <div id="recommendationsContent">
-                    <!-- Will be populated by JavaScript -->
-                </div>
-            </div>
-        </div>
+    <div class="page-hero">
+      <div class="page-hero-copy">
+        <div class="page-eyebrow">Signal timing</div>
+        <h1 class="page-title">Signal Optimization</h1>
+        <p class="page-subtitle">{{ intersection.name }} — {{ intersection.location }}</p>
+      </div>
+      <div class="page-actions">
+        <button class="btn btn-primary" id="optimizeBtn">Calculate timing</button>
+        <button class="btn btn-secondary" id="resetBtn" type="button">Reset</button>
+      </div>
     </div>
 
-    <script>
+    <section class="surface-panel section-block">
+      <div class="section-heading">
+        <div>
+          <div class="section-kicker">Step 1</div>
+          <h2 class="section-title">Enter vehicle counts</h2>
+          <p class="section-text" style="margin-bottom: 0;">
+            Add a quick estimate for each approach. Keep it simple—start with rough counts, then refine.
+          </p>
+        </div>
+      </div>
+
+      <div class="opt-form-grid" id="inputGroup"></div>
+
+      <div class="opt-actions" style="margin-top: 16px;">
+        <div id="optStatus" class="opt-status" aria-live="polite"></div>
+      </div>
+    </section>
+
+    <section id="resultsSection" class="section-stack" style="display:none;">
+      <section class="surface-panel section-block">
+        <div class="section-heading">
+          <div>
+            <div class="section-kicker">Step 2</div>
+            <h2 class="section-title">Results overview</h2>
+            <p class="section-text" style="margin-bottom:0;">Start here. Expand details only if you need them.</p>
+          </div>
+        </div>
+
+        <div class="stat-grid" id="summaryStats"></div>
+      </section>
+
+      <details class="opt-details" open>
+        <summary>
+          <div>
+            <div class="opt-summary-title">Per-direction green times</div>
+            <div class="opt-summary-hint">Recommended green split based on your inputs.</div>
+          </div>
+          <span class="pill" id="laneCountPill">0 lanes</span>
+        </summary>
+        <div class="opt-details-body">
+          <div class="opt-lane-grid" id="lanesGrid"></div>
+        </div>
+      </details>
+
+      <details class="opt-details" id="scheduleSection" style="display:none;">
+        <summary>
+          <div>
+            <div class="opt-summary-title">Signal schedule</div>
+            <div class="opt-summary-hint">Green → Yellow → All-red durations per direction.</div>
+          </div>
+          <span class="pill">Details</span>
+        </summary>
+        <div class="opt-details-body" id="scheduleContent"></div>
+      </details>
+
+      <details class="opt-details" id="recommendationsSection" style="display:none;">
+        <summary>
+          <div>
+            <div class="opt-summary-title">AI recommendations</div>
+            <div class="opt-summary-hint">Only critical items first, then optional tuning.</div>
+          </div>
+          <span class="pill">Tips</span>
+        </summary>
+        <div class="opt-details-body">
+          <div class="opt-recs" id="recommendationsContent"></div>
+        </div>
+      </details>
+    </section>
+  </div>
+</main>
+
+<script>
         const intersection = {{ intersection | tojson }};
         const inputGroupDiv = document.getElementById('inputGroup');
         const optimizeBtn = document.getElementById('optimizeBtn');
@@ -400,19 +142,28 @@
         const lanesGrid = document.getElementById('lanesGrid');
         const scheduleSection = document.getElementById('scheduleSection');
         const recommendationsSection = document.getElementById('recommendationsSection');
+        const scheduleContent = document.getElementById('scheduleContent');
+        const recommendationsContent = document.getElementById('recommendationsContent');
+        const summaryStats = document.getElementById('summaryStats');
+        const laneCountPill = document.getElementById('laneCountPill');
+        const resetBtn = document.getElementById('resetBtn');
+        const optStatus = document.getElementById('optStatus');
 
         // Generate input fields for each lane
         function generateInputs() {
             let html = '';
             intersection.lanes.forEach((lane, idx) => {
-                const direction = lane.direction.toLowerCase();
+                const directionLabel = (lane.direction || `Lane ${idx + 1}`).toString();
+                const directionKey = directionLabel;
                 html += `
-                    <div class="input-field">
-                        <label for="vehicles-${idx}">
-                            ${lane.direction.toUpperCase()} - Vehicle Count
-                        </label>
-                        <input type="number" id="vehicles-${idx}" data-direction="${lane.direction}" 
-                               value="0" min="0" max="100" placeholder="0">
+                    <div class="opt-field">
+                        <div class="opt-field-top">
+                            <div class="opt-field-title">${directionLabel.toUpperCase()}</div>
+                            <div class="opt-field-meta">vehicles</div>
+                        </div>
+                        <input class="opt-number" type="number" id="vehicles-${idx}" data-direction="${directionKey}"
+                               value="0" min="0" max="200" inputmode="numeric" placeholder="0" aria-label="${directionLabel} vehicle count">
+                        <div class="opt-field-meta">Tip: enter a quick count (e.g., 12).</div>
                     </div>
                 `;
             });
@@ -421,12 +172,48 @@
 
         generateInputs();
 
+        function setStatus(message, tone = 'loading') {
+            if (!optStatus) return;
+            optStatus.classList.add('show');
+            optStatus.classList.remove('loading-state', 'success-state', 'error-state');
+            if (tone === 'success') optStatus.classList.add('success-state');
+            else if (tone === 'error') optStatus.classList.add('error-state');
+            else optStatus.classList.add('loading-state');
+            optStatus.textContent = message;
+        }
+
+        function clearStatus() {
+            if (!optStatus) return;
+            optStatus.classList.remove('show', 'loading-state', 'success-state', 'error-state');
+            optStatus.textContent = '';
+        }
+
+        function resetForm() {
+            intersection.lanes.forEach((lane, idx) => {
+                const vehicleInput = document.getElementById(`vehicles-${idx}`);
+                if (vehicleInput) vehicleInput.value = '0';
+            });
+            resultsSection.style.display = 'none';
+            scheduleSection.style.display = 'none';
+            recommendationsSection.style.display = 'none';
+            lanesGrid.innerHTML = '';
+            scheduleContent.innerHTML = '';
+            recommendationsContent.innerHTML = '';
+            summaryStats.innerHTML = '';
+            laneCountPill.textContent = `${intersection.lanes.length} lanes`;
+            clearStatus();
+        }
+
+        laneCountPill.textContent = `${intersection.lanes.length} lanes`;
+        resetBtn.addEventListener('click', resetForm);
+
         optimizeBtn.addEventListener('click', async () => {
             // Collect input data
             const trafficData = {};
             intersection.lanes.forEach((lane, idx) => {
                 const vehicleInput = document.getElementById(`vehicles-${idx}`);
-                trafficData[lane.direction] = {
+                const directionKey = vehicleInput?.dataset?.direction || lane.direction;
+                trafficData[directionKey] = {
                     vehicles: parseInt(vehicleInput.value) || 0,
                     priority: calculatePriority(parseInt(vehicleInput.value) || 0)
                 };
@@ -434,6 +221,7 @@
 
             optimizeBtn.disabled = true;
             resultsSection.style.display = 'none';
+            setStatus('Calculating optimal timing…', 'loading');
 
             try {
                 const response = await fetch('/api/optimize-signals', {
@@ -452,11 +240,12 @@
                 if (response.ok) {
                     displayOptimization(data);
                     resultsSection.style.display = 'block';
+                    setStatus('Done. Review the overview first, then expand details if needed.', 'success');
                 } else {
-                    alert(`Error: ${data.error}`);
+                    setStatus(`Error: ${data.error || 'Request failed.'}`, 'error');
                 }
             } catch (error) {
-                alert(`Error: ${error.message}`);
+                setStatus(`Error: ${error.message}`, 'error');
             } finally {
                 optimizeBtn.disabled = false;
             }
@@ -470,25 +259,57 @@
         }
 
         function displayOptimization(data) {
+            const optimization = data.optimization || {};
+            const yellow = optimization.yellow_time ?? 0;
+            const allRed = optimization.all_red_time ?? 0;
+            const cycle = optimization.cycle_time ?? 0;
+            const greenTimes = optimization.green_times || {};
+
+            // Summary stats (top-level, minimal)
+            const busiest = Object.entries(data?.recommendations?.lane_severities || {})
+                .sort((a, b) => (b[1] || 0) - (a[1] || 0))[0]?.[0] || '-';
+
+            summaryStats.innerHTML = `
+                <div class="stat-card">
+                  <div class="label">Cycle time</div>
+                  <div class="value">${cycle}s</div>
+                  <div class="hint">Total duration for one full rotation.</div>
+                </div>
+                <div class="stat-card">
+                  <div class="label">Yellow</div>
+                  <div class="value">${yellow}s</div>
+                  <div class="hint">Per phase, after green ends.</div>
+                </div>
+                <div class="stat-card">
+                  <div class="label">All-red</div>
+                  <div class="value">${allRed}s</div>
+                  <div class="hint">Safety buffer between phases.</div>
+                </div>
+                <div class="stat-card">
+                  <div class="label">Most pressure</div>
+                  <div class="value">${busiest}</div>
+                  <div class="hint">Based on the recommendation engine.</div>
+                </div>
+            `;
+
             // Display lanes with green times
             lanesGrid.innerHTML = '';
-            const optimization = data.optimization;
             
             intersection.lanes.forEach(lane => {
                 const direction = lane.direction;
-                const greenTime = optimization.green_times[direction] || 30;
+                const greenTime = greenTimes[direction] ?? 0;
+                const totalPhase = (greenTime || 0) + (yellow || 0) + (allRed || 0);
                 
                 lanesGrid.innerHTML += `
-                    <div class="lane-card">
-                        <div class="lane-name">${direction}</div>
-                        <div class="timing-info">
-                            <div class="timing-label">Green Time</div>
-                            <div class="green-time">${greenTime}s</div>
-                            <div class="timing-label">Yellow: ${optimization.yellow_time}s</div>
-                            <div class="timing-label">All-Red: ${optimization.all_red_time}s</div>
-                            <div style="margin-top: 10px; color: #667eea; font-weight: 600;">
-                                Total: ${greenTime + optimization.yellow_time + optimization.all_red_time}s
-                            </div>
+                    <div class="opt-lane-card">
+                        <div style="display:flex;justify-content:space-between;gap:12px;align-items:baseline;">
+                          <h3>${direction}</h3>
+                          <span class="pill">Green ${greenTime}s</span>
+                        </div>
+                        <div class="opt-lane-metrics">
+                          <div class="opt-metric-row"><span>Yellow</span><strong>${yellow}s</strong></div>
+                          <div class="opt-metric-row"><span>All-red</span><strong>${allRed}s</strong></div>
+                          <div class="opt-metric-row"><span>Total phase</span><strong>${totalPhase}s</strong></div>
                         </div>
                     </div>
                 `;
@@ -498,28 +319,21 @@
             if (data.schedule && data.schedule.schedule) {
                 let scheduleHtml = '';
                 for (const [direction, schedule] of Object.entries(data.schedule.schedule)) {
-                    const phase = schedule.phase.split('+').map(p => p.trim());
                     scheduleHtml += `
-                        <div style="margin-bottom: 30px;">
-                            <h3 style="color: #667eea; margin-bottom: 15px;">${direction.toUpperCase()}</h3>
-                            <div class="phase-timeline">
-                                <div class="phase-block phase-green">
-                                    <div class="phase-label">Green</div>
-                                    <div class="phase-time">${schedule.green_duration}s</div>
-                                </div>
-                                <div class="phase-block phase-yellow">
-                                    <div class="phase-label">Yellow</div>
-                                    <div class="phase-time">${schedule.yellow_duration}s</div>
-                                </div>
-                                <div class="phase-block phase-red">
-                                    <div class="phase-label">All-Red</div>
-                                    <div class="phase-time">${schedule.all_red_duration}s</div>
-                                </div>
-                            </div>
+                        <div class="opt-lane-card" style="margin-bottom: 12px;">
+                          <div style="display:flex;justify-content:space-between;gap:12px;align-items:baseline;flex-wrap:wrap;">
+                            <h3>${direction.toUpperCase()}</h3>
+                            <span class="pill">Schedule</span>
+                          </div>
+                          <div class="opt-lane-metrics">
+                            <div class="opt-metric-row"><span>Green</span><strong>${schedule.green_duration}s</strong></div>
+                            <div class="opt-metric-row"><span>Yellow</span><strong>${schedule.yellow_duration}s</strong></div>
+                            <div class="opt-metric-row"><span>All-red</span><strong>${schedule.all_red_duration}s</strong></div>
+                          </div>
                         </div>
                     `;
                 }
-                document.getElementById('scheduleContent').innerHTML = scheduleHtml;
+                scheduleContent.innerHTML = scheduleHtml;
                 scheduleSection.style.display = 'block';
             }
 
@@ -528,22 +342,22 @@
                 let recsHtml = '';
                 data.recommendations.recommendations.forEach(rec => {
                     const severity = rec.severity.toLowerCase();
+                    const tone = severity === 'critical' ? 'bad' : severity === 'high' ? 'warn' : 'good';
                     recsHtml += `
-                        <div class="recommendation-item ${severity}">
-                            <div class="recommendation-header">
-                                <div class="recommendation-direction">${rec.direction}</div>
-                                <span class="recommendation-severity severity-${severity}">${rec.severity.toUpperCase()}</span>
+                        <div class="opt-rec">
+                            <div class="opt-rec-top">
+                                <div class="opt-rec-title">${rec.direction}</div>
+                                <span class="pill ${tone}">${rec.severity.toUpperCase()}</span>
                             </div>
-                            <div class="recommendation-message">${rec.message}</div>
-                            <div class="recommendation-action">→ ${rec.action}</div>
+                            <div class="opt-rec-msg">${rec.message}</div>
+                            <div class="opt-rec-action">→ ${rec.action}</div>
                         </div>
                     `;
                 });
-                document.getElementById('recommendationsContent').innerHTML = recsHtml || 
-                    '<p style="color: #666;">No special recommendations at this time.</p>';
+                recommendationsContent.innerHTML = recsHtml || 
+                    '<div class="loading-state">No special recommendations at this time.</div>';
                 recommendationsSection.style.display = 'block';
             }
         }
-    </script>
-</body>
-</html>
+</script>
+{% endblock %}
