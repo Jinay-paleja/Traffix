@@ -8,7 +8,7 @@
     background:
       radial-gradient(circle at top, rgba(14, 165, 233, 0.16), transparent 30%),
       radial-gradient(circle at 20% 20%, rgba(59, 130, 246, 0.08), transparent 28%),
-      linear-gradient(180deg, var(--bg-main) 0%, var(--bg-elevated) 100%);
+      linear-gradient(180deg, #05070a 0%, #020304 100%);
   }
   .monitor-shell {
     max-width: 1680px;
@@ -23,9 +23,11 @@
     gap: 14px;
     padding: 18px 20px;
     border-radius: 24px;
-    border: 1px solid var(--panel-border);
-    background: var(--panel-bg);
-    box-shadow: var(--shadow-soft);
+    border: 1px solid rgba(148, 163, 184, 0.16);
+    background:
+      linear-gradient(180deg, rgba(15, 23, 42, 0.72), rgba(5, 9, 16, 0.88)),
+      radial-gradient(circle at top right, rgba(34, 197, 94, 0.08), transparent 24%);
+    box-shadow: 0 24px 80px rgba(0, 0, 0, 0.38);
   }
   .monitor-topbar {
     display: flex;
@@ -90,7 +92,7 @@
     aspect-ratio: 16 / 9;
     border-radius: 22px;
     overflow: hidden;
-    border: 1px solid rgba(148, 163, 184, 0.20);
+    border: 1px solid rgba(148, 163, 184, 0.12);
     background:
       linear-gradient(180deg, rgba(7, 10, 16, 0.94), rgba(2, 6, 12, 0.98)),
       repeating-linear-gradient(
@@ -100,7 +102,7 @@
         transparent 10px,
         transparent 22px
       );
-    box-shadow: var(--shadow-soft);
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.24);
   }
   .monitor-tile.is-offline {
     opacity: 0.84;
@@ -244,37 +246,20 @@
     display: none;
     padding: 14px 16px;
     border-radius: 16px;
-    border: 1px solid var(--panel-border);
-    background: var(--panel-bg-solid);
-    color: var(--text-secondary);
+    border: 1px solid rgba(148, 163, 184, 0.14);
+    background: rgba(15, 23, 42, 0.72);
+    color: rgba(226, 232, 240, 0.84);
   }
   .monitor-statusbar [data-webcam-status='1'][data-tone='success'] {
     border-color: rgba(34, 197, 94, 0.28);
-    background: rgba(52, 211, 153, 0.12);
-    color: var(--success);
+    background: rgba(20, 83, 45, 0.34);
+    color: #86efac;
   }
   .monitor-statusbar [data-webcam-status='1'][data-tone='error'] {
     border-color: rgba(248, 113, 113, 0.28);
-    background: rgba(248, 113, 113, 0.12);
-    color: var(--error);
+    background: rgba(127, 29, 29, 0.3);
+    color: #fca5a5;
   }
-
-  /* Light mode: remove the always-dark "cinematic" treatment. */
-  :root.light-mode .monitor-tile{
-    background:
-      linear-gradient(180deg, rgba(255,255,255,.92), rgba(241,245,249,.92)),
-      repeating-linear-gradient(-45deg, rgba(15,23,42,.03) 0, rgba(15,23,42,.03) 10px, transparent 10px, transparent 22px);
-    border-color: rgba(15,23,42,.14);
-  }
-  :root.light-mode .tile-header,
-  :root.light-mode .tile-footer{
-    background: linear-gradient(180deg, rgba(248,250,252,.88) 0%, rgba(248,250,252,.60) 72%, rgba(248,250,252,0) 100%);
-  }
-  :root.light-mode .tile-meta{ color: rgba(15,23,42,.62); }
-  :root.light-mode .tile-footer-copy,
-  :root.light-mode .tile-source{ color: rgba(15,23,42,.62); }
-  :root.light-mode .tile-idle{ color: rgba(15,23,42,.70); background: linear-gradient(180deg, rgba(248,250,252,.52), rgba(248,250,252,.86)); }
-  :root.light-mode .tile-idle strong{ color: var(--text-primary); }
   .monitor-grid.grid-count-1 .monitor-tile {
     aspect-ratio: 21 / 9;
   }

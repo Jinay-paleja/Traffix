@@ -1,0 +1,33 @@
+<svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect x="4" y="4" width="56" height="56" rx="16" fill="url(#bg)"/>
+  <rect x="4.5" y="4.5" width="55" height="55" rx="15.5" stroke="#FFFFFF" stroke-opacity="0.07"/>
+
+  <path d="M20 44.5C20 34.2827 28.2827 26 38.5 26H42.5" stroke="url(#arm)" stroke-width="4.5" stroke-linecap="round"/>
+  <path d="M19.5 45H29.5" stroke="#E7ECF5" stroke-opacity="0.92" stroke-width="4.5" stroke-linecap="round"/>
+
+  <rect x="39" y="16" width="11" height="24" rx="5.5" fill="url(#housing)"/>
+  <rect x="39.5" y="16.5" width="10" height="23" rx="5" stroke="#FFFFFF" stroke-opacity="0.08"/>
+
+  <circle cx="44.5" cy="21.5" r="2.4" fill="#71E0B7"/>
+  <circle cx="44.5" cy="28" r="2.4" fill="#F1C75B"/>
+  <circle cx="44.5" cy="34.5" r="2.4" fill="#E27B7B"/>
+
+  <circle cx="44.5" cy="21.5" r="4.4" fill="#71E0B7" fill-opacity="0.08"/>
+  <circle cx="44.5" cy="28" r="4.4" fill="#F1C75B" fill-opacity="0.07"/>
+  <circle cx="44.5" cy="34.5" r="4.4" fill="#E27B7B" fill-opacity="0.07"/>
+
+  <defs>
+    <linearGradient id="bg" x1="32" y1="4" x2="32" y2="60" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#1D2230"/>
+      <stop offset="1" stop-color="#111723"/>
+    </linearGradient>
+    <linearGradient id="arm" x1="20" y1="26" x2="42.5" y2="44.5" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#C9D3E1"/>
+      <stop offset="1" stop-color="#EEF3FB"/>
+    </linearGradient>
+    <linearGradient id="housing" x1="44.5" y1="16" x2="44.5" y2="40" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#364153"/>
+      <stop offset="1" stop-color="#232C3A"/>
+    </linearGradient>
+  </defs>
+</svg>

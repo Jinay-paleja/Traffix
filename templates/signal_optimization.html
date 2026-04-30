@@ -1,0 +1,363 @@
+{% extends "base.html" %}
+{% block title %}Signal Optimization - Traffix{% endblock %}
+
+{% block extra_css %}
+<style>
+  .opt-shell { padding: var(--space-8) 24px 72px; min-height: 100vh; }
+  .opt-shell .container { max-width: 1100px; }
+  .opt-stack { display: grid; gap: var(--space-8); }
+
+  .opt-form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: var(--space-4); }
+  .opt-field { padding: 16px; border-radius: 18px; background: var(--panel-bg-solid); border: 1px solid var(--panel-border); display: grid; gap: 10px; }
+  .opt-field-top { display:flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+  .opt-field-title { font-weight: 800; letter-spacing: -0.02em; }
+  .opt-field-meta { font-size: 0.82rem; color: var(--text-secondary); }
+  .opt-number { width: 100%; padding: 14px 16px; font: inherit; color: var(--text-main); background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: 999px; }
+
+  .opt-actions { display:flex; justify-content:flex-end; gap: 10px; flex-wrap: wrap; }
+  .opt-status { display:none; padding: 14px 16px; border-radius: var(--radius-sm); border: 1px solid rgba(255,255,255,0.08); }
+  .opt-status.show { display:block; }
+
+  details.opt-details { border-radius: var(--radius-card); border: 1px solid var(--panel-border); background: var(--panel-bg); box-shadow: var(--shadow-soft); overflow:hidden; }
+  details.opt-details > summary { cursor:pointer; list-style:none; padding: 18px 20px; display:flex; justify-content: space-between; gap: 14px; align-items: baseline; }
+  details.opt-details > summary::-webkit-details-marker { display:none; }
+  .opt-summary-title { font-weight: 800; letter-spacing: -0.03em; }
+  .opt-summary-hint { color: var(--text-secondary); font-size: 0.9rem; }
+  .opt-details-body { padding: 0 20px 20px; }
+
+  .opt-lane-grid { display:grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: var(--space-4); }
+  .opt-lane-card { padding: 18px; border-radius: 18px; background: linear-gradient(180deg, rgba(255,255,255,0.045), rgba(255,255,255,0.02)); border: 1px solid rgba(255,255,255,0.08); }
+  .opt-lane-card h3 { margin: 0; font-size: 1.1rem; letter-spacing: -0.03em; }
+  .opt-lane-metrics { display:grid; gap: 10px; margin-top: 14px; }
+  .opt-metric-row { display:flex; justify-content: space-between; gap: 12px; color: var(--text-secondary); font-size: 0.92rem; }
+  .opt-metric-row strong { color: var(--text-main); }
+
+  .pill { display:inline-flex; align-items:center; padding: 6px 10px; border-radius: 999px; font-size: 0.78rem; font-weight: 800; letter-spacing: 0.04em; text-transform: uppercase; border: 1px solid rgba(255,255,255,0.10); background: rgba(255,255,255,0.04); color: var(--text-secondary); }
+  .pill.good { background: rgba(52, 211, 153, 0.14); border-color: rgba(52, 211, 153, 0.22); color: #86efac; }
+  .pill.warn { background: rgba(251, 191, 36, 0.14); border-color: rgba(251, 191, 36, 0.22); color: #fde68a; }
+  .pill.bad { background: rgba(248, 113, 113, 0.14); border-color: rgba(248, 113, 113, 0.22); color: #fca5a5; }
+
+  .opt-recs { display:grid; gap: 12px; }
+  .opt-rec { padding: 16px; border-radius: 18px; border: 1px solid rgba(255,255,255,0.08); background: rgba(255,255,255,0.03); }
+  .opt-rec-top { display:flex; justify-content: space-between; gap: 12px; align-items: baseline; flex-wrap: wrap; }
+  .opt-rec-title { font-weight: 800; letter-spacing: -0.02em; }
+  .opt-rec-msg { margin-top: 8px; color: var(--text-secondary); line-height: 1.7; }
+  .opt-rec-action { margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.08); color: var(--accent-hover); font-weight: 700; }
+</style>
+{% endblock %}
+
+{% block body %}
+<main class="opt-shell">
+  <div class="container opt-stack">
+    <a href="{{ url_for('intersections') }}" class="back-link">Back to Intersections</a>
+
+    <div class="page-hero">
+      <div class="page-hero-copy">
+        <div class="page-eyebrow">Signal timing</div>
+        <h1 class="page-title">Signal Optimization</h1>
+        <p class="page-subtitle">{{ intersection.name }} — {{ intersection.location }}</p>
+      </div>
+      <div class="page-actions">
+        <button class="btn btn-primary" id="optimizeBtn">Calculate timing</button>
+        <button class="btn btn-secondary" id="resetBtn" type="button">Reset</button>
+      </div>
+    </div>
+
+    <section class="surface-panel section-block">
+      <div class="section-heading">
+        <div>
+          <div class="section-kicker">Step 1</div>
+          <h2 class="section-title">Enter vehicle counts</h2>
+          <p class="section-text" style="margin-bottom: 0;">
+            Add a quick estimate for each approach. Keep it simple—start with rough counts, then refine.
+          </p>
+        </div>
+      </div>
+
+      <div class="opt-form-grid" id="inputGroup"></div>
+
+      <div class="opt-actions" style="margin-top: 16px;">
+        <div id="optStatus" class="opt-status" aria-live="polite"></div>
+      </div>
+    </section>
+
+    <section id="resultsSection" class="section-stack" style="display:none;">
+      <section class="surface-panel section-block">
+        <div class="section-heading">
+          <div>
+            <div class="section-kicker">Step 2</div>
+            <h2 class="section-title">Results overview</h2>
+            <p class="section-text" style="margin-bottom:0;">Start here. Expand details only if you need them.</p>
+          </div>
+        </div>
+
+        <div class="stat-grid" id="summaryStats"></div>
+      </section>
+
+      <details class="opt-details" open>
+        <summary>
+          <div>
+            <div class="opt-summary-title">Per-direction green times</div>
+            <div class="opt-summary-hint">Recommended green split based on your inputs.</div>
+          </div>
+          <span class="pill" id="laneCountPill">0 lanes</span>
+        </summary>
+        <div class="opt-details-body">
+          <div class="opt-lane-grid" id="lanesGrid"></div>
+        </div>
+      </details>
+
+      <details class="opt-details" id="scheduleSection" style="display:none;">
+        <summary>
+          <div>
+            <div class="opt-summary-title">Signal schedule</div>
+            <div class="opt-summary-hint">Green → Yellow → All-red durations per direction.</div>
+          </div>
+          <span class="pill">Details</span>
+        </summary>
+        <div class="opt-details-body" id="scheduleContent"></div>
+      </details>
+
+      <details class="opt-details" id="recommendationsSection" style="display:none;">
+        <summary>
+          <div>
+            <div class="opt-summary-title">AI recommendations</div>
+            <div class="opt-summary-hint">Only critical items first, then optional tuning.</div>
+          </div>
+          <span class="pill">Tips</span>
+        </summary>
+        <div class="opt-details-body">
+          <div class="opt-recs" id="recommendationsContent"></div>
+        </div>
+      </details>
+    </section>
+  </div>
+</main>
+
+<script>
+        const intersection = {{ intersection | tojson }};
+        const inputGroupDiv = document.getElementById('inputGroup');
+        const optimizeBtn = document.getElementById('optimizeBtn');
+        const resultsSection = document.getElementById('resultsSection');
+        const lanesGrid = document.getElementById('lanesGrid');
+        const scheduleSection = document.getElementById('scheduleSection');
+        const recommendationsSection = document.getElementById('recommendationsSection');
+        const scheduleContent = document.getElementById('scheduleContent');
+        const recommendationsContent = document.getElementById('recommendationsContent');
+        const summaryStats = document.getElementById('summaryStats');
+        const laneCountPill = document.getElementById('laneCountPill');
+        const resetBtn = document.getElementById('resetBtn');
+        const optStatus = document.getElementById('optStatus');
+
+        // Generate input fields for each lane
+        function generateInputs() {
+            let html = '';
+            intersection.lanes.forEach((lane, idx) => {
+                const directionLabel = (lane.direction || `Lane ${idx + 1}`).toString();
+                const directionKey = directionLabel;
+                html += `
+                    <div class="opt-field">
+                        <div class="opt-field-top">
+                            <div class="opt-field-title">${directionLabel.toUpperCase()}</div>
+                            <div class="opt-field-meta">vehicles</div>
+                        </div>
+                        <input class="opt-number" type="number" id="vehicles-${idx}" data-direction="${directionKey}"
+                               value="0" min="0" max="200" inputmode="numeric" placeholder="0" aria-label="${directionLabel} vehicle count">
+                        <div class="opt-field-meta">Tip: enter a quick count (e.g., 12).</div>
+                    </div>
+                `;
+            });
+            inputGroupDiv.innerHTML = html;
+        }
+
+        generateInputs();
+
+        function setStatus(message, tone = 'loading') {
+            if (!optStatus) return;
+            optStatus.classList.add('show');
+            optStatus.classList.remove('loading-state', 'success-state', 'error-state');
+            if (tone === 'success') optStatus.classList.add('success-state');
+            else if (tone === 'error') optStatus.classList.add('error-state');
+            else optStatus.classList.add('loading-state');
+            optStatus.textContent = message;
+        }
+
+        function clearStatus() {
+            if (!optStatus) return;
+            optStatus.classList.remove('show', 'loading-state', 'success-state', 'error-state');
+            optStatus.textContent = '';
+        }
+
+        function resetForm() {
+            intersection.lanes.forEach((lane, idx) => {
+                const vehicleInput = document.getElementById(`vehicles-${idx}`);
+                if (vehicleInput) vehicleInput.value = '0';
+            });
+            resultsSection.style.display = 'none';
+            scheduleSection.style.display = 'none';
+            recommendationsSection.style.display = 'none';
+            lanesGrid.innerHTML = '';
+            scheduleContent.innerHTML = '';
+            recommendationsContent.innerHTML = '';
+            summaryStats.innerHTML = '';
+            laneCountPill.textContent = `${intersection.lanes.length} lanes`;
+            clearStatus();
+        }
+
+        laneCountPill.textContent = `${intersection.lanes.length} lanes`;
+        resetBtn.addEventListener('click', resetForm);
+
+        optimizeBtn.addEventListener('click', async () => {
+            // Collect input data
+            const trafficData = {};
+            intersection.lanes.forEach((lane, idx) => {
+                const vehicleInput = document.getElementById(`vehicles-${idx}`);
+                const directionKey = vehicleInput?.dataset?.direction || lane.direction;
+                trafficData[directionKey] = {
+                    vehicles: parseInt(vehicleInput.value) || 0,
+                    priority: calculatePriority(parseInt(vehicleInput.value) || 0)
+                };
+            });
+
+            optimizeBtn.disabled = true;
+            resultsSection.style.display = 'none';
+            setStatus('Calculating optimal timing…', 'loading');
+
+            try {
+                const response = await fetch('/api/optimize-signals', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        intersection_id: intersection.id,
+                        traffic_data: trafficData
+                    })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    displayOptimization(data);
+                    resultsSection.style.display = 'block';
+                    setStatus('Done. Review the overview first, then expand details if needed.', 'success');
+                } else {
+                    setStatus(`Error: ${data.error || 'Request failed.'}`, 'error');
+                }
+            } catch (error) {
+                setStatus(`Error: ${error.message}`, 'error');
+            } finally {
+                optimizeBtn.disabled = false;
+            }
+        });
+
+        function calculatePriority(vehicles) {
+            if (vehicles < 5) return 1;
+            if (vehicles < 15) return 2;
+            if (vehicles < 30) return 3;
+            return 4;
+        }
+
+        function displayOptimization(data) {
+            const optimization = data.optimization || {};
+            const yellow = optimization.yellow_time ?? 0;
+            const allRed = optimization.all_red_time ?? 0;
+            const cycle = optimization.cycle_time ?? 0;
+            const greenTimes = optimization.green_times || {};
+
+            // Summary stats (top-level, minimal)
+            const busiest = Object.entries(data?.recommendations?.lane_severities || {})
+                .sort((a, b) => (b[1] || 0) - (a[1] || 0))[0]?.[0] || '-';
+
+            summaryStats.innerHTML = `
+                <div class="stat-card">
+                  <div class="label">Cycle time</div>
+                  <div class="value">${cycle}s</div>
+                  <div class="hint">Total duration for one full rotation.</div>
+                </div>
+                <div class="stat-card">
+                  <div class="label">Yellow</div>
+                  <div class="value">${yellow}s</div>
+                  <div class="hint">Per phase, after green ends.</div>
+                </div>
+                <div class="stat-card">
+                  <div class="label">All-red</div>
+                  <div class="value">${allRed}s</div>
+                  <div class="hint">Safety buffer between phases.</div>
+                </div>
+                <div class="stat-card">
+                  <div class="label">Most pressure</div>
+                  <div class="value">${busiest}</div>
+                  <div class="hint">Based on the recommendation engine.</div>
+                </div>
+            `;
+
+            // Display lanes with green times
+            lanesGrid.innerHTML = '';
+            
+            intersection.lanes.forEach(lane => {
+                const direction = lane.direction;
+                const greenTime = greenTimes[direction] ?? 0;
+                const totalPhase = (greenTime || 0) + (yellow || 0) + (allRed || 0);
+                
+                lanesGrid.innerHTML += `
+                    <div class="opt-lane-card">
+                        <div style="display:flex;justify-content:space-between;gap:12px;align-items:baseline;">
+                          <h3>${direction}</h3>
+                          <span class="pill">Green ${greenTime}s</span>
+                        </div>
+                        <div class="opt-lane-metrics">
+                          <div class="opt-metric-row"><span>Yellow</span><strong>${yellow}s</strong></div>
+                          <div class="opt-metric-row"><span>All-red</span><strong>${allRed}s</strong></div>
+                          <div class="opt-metric-row"><span>Total phase</span><strong>${totalPhase}s</strong></div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            // Display schedule
+            if (data.schedule && data.schedule.schedule) {
+                let scheduleHtml = '';
+                for (const [direction, schedule] of Object.entries(data.schedule.schedule)) {
+                    scheduleHtml += `
+                        <div class="opt-lane-card" style="margin-bottom: 12px;">
+                          <div style="display:flex;justify-content:space-between;gap:12px;align-items:baseline;flex-wrap:wrap;">
+                            <h3>${direction.toUpperCase()}</h3>
+                            <span class="pill">Schedule</span>
+                          </div>
+                          <div class="opt-lane-metrics">
+                            <div class="opt-metric-row"><span>Green</span><strong>${schedule.green_duration}s</strong></div>
+                            <div class="opt-metric-row"><span>Yellow</span><strong>${schedule.yellow_duration}s</strong></div>
+                            <div class="opt-metric-row"><span>All-red</span><strong>${schedule.all_red_duration}s</strong></div>
+                          </div>
+                        </div>
+                    `;
+                }
+                scheduleContent.innerHTML = scheduleHtml;
+                scheduleSection.style.display = 'block';
+            }
+
+            // Display recommendations
+            if (data.recommendations && data.recommendations.recommendations) {
+                let recsHtml = '';
+                data.recommendations.recommendations.forEach(rec => {
+                    const severity = rec.severity.toLowerCase();
+                    const tone = severity === 'critical' ? 'bad' : severity === 'high' ? 'warn' : 'good';
+                    recsHtml += `
+                        <div class="opt-rec">
+                            <div class="opt-rec-top">
+                                <div class="opt-rec-title">${rec.direction}</div>
+                                <span class="pill ${tone}">${rec.severity.toUpperCase()}</span>
+                            </div>
+                            <div class="opt-rec-msg">${rec.message}</div>
+                            <div class="opt-rec-action">→ ${rec.action}</div>
+                        </div>
+                    `;
+                });
+                recommendationsContent.innerHTML = recsHtml || 
+                    '<div class="loading-state">No special recommendations at this time.</div>';
+                recommendationsSection.style.display = 'block';
+            }
+        }
+</script>
+{% endblock %}

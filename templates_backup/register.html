@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Log in – Traffix{% endblock %}
+{% block title %}Create account – Traffix{% endblock %}
 {% block extra_css %}
 <style>
   .auth-page {
@@ -87,11 +87,15 @@
   <div class="auth-card card">
     <div class="auth-header">
       <a href="{{ url_for('index') }}" class="nav-brand"><img src="{{ url_for('static', filename='images/traffix-mark.svg') }}" alt="" class="nav-brand-mark" aria-hidden="true"><span class="nav-brand-text">Traff<span>ix</span></span></a>
-      <h1 class="auth-title">Welcome back</h1>
-      <p class="auth-subtitle">Sign in to your Smart Traffic Signal Optimizer account</p>
+      <h1 class="auth-title">Create account</h1>
+      <p class="auth-subtitle">Get started with the Smart Traffic Signal Optimizer</p>
     </div>
 
-    <form class="auth-form" action="{{ url_for('login') }}" method="post" id="login-form">
+    <form class="auth-form" action="{{ url_for('register') }}" method="post" id="register-form">
+      <div class="input-group">
+        <label for="name">Full name</label>
+        <input type="text" id="name" name="name" placeholder="Jane Doe" required autocomplete="name" />
+      </div>
       <div class="input-group">
         <label for="email">Email</label>
         <input type="email" id="email" name="email" placeholder="you@example.com" required autocomplete="email" />
@@ -99,29 +103,40 @@
       <div class="input-group">
         <label for="password">Password</label>
         <div class="password-input-wrapper">
-          <input type="password" id="password" name="password" placeholder="••••••••" required autocomplete="current-password" style="padding-right: 44px;" />
+          <input type="password" id="password" name="password" placeholder="At least 8 characters" required autocomplete="new-password" minlength="8" style="padding-right: 44px;" />
           <button type="button" class="password-toggle" onclick="togglePassword('password', this)" aria-label="Show password">
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="eye-icon"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="eye-off-icon" style="display:none;"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
           </button>
         </div>
       </div>
-      <button type="submit" class="btn btn-primary">Log in</button>
+      <div class="input-group">
+        <label for="confirm-password">Confirm password</label>
+        <div class="password-input-wrapper">
+          <input type="password" id="confirm-password" name="confirm-password" placeholder="••••••••" required autocomplete="new-password" minlength="8" style="padding-right: 44px;" />
+          <button type="button" class="password-toggle" onclick="togglePassword('confirm-password', this)" aria-label="Show password">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="eye-icon"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="eye-off-icon" style="display:none;"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
+          </button>
+        </div>
+      </div>
+      <button type="submit" class="btn btn-primary">Create account</button>
     </form>
-
-    <div style="text-align:center; margin: 18px 0;">
-      <button id="google-signin-btn" type="button" class="btn btn-secondary" style="width:100%; background:#fff; color:#444; border:1px solid #ccc; display:flex; align-items:center; justify-content:center; gap:8px;">
-        <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" style="width:20px; height:20px;"> Sign in with Google
-      </button>
-    </div>
 
     <div class="auth-divider">— or —</div>
     <p class="auth-footer">
-      Don't have an account? <a href="{{ url_for('register') }}">Create one</a>
+      Already have an account? <a href="{{ url_for('login') }}">Log in</a>
     </p>
   </div>
   <a href="{{ url_for('index') }}" class="back-link">← Back to home</a>
 </div>
+<script src="{{ url_for('static', filename='js/auth.js') }}"></script>
+<!-- Firebase JS SDK -->
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="/static/js/firebase-register.js"></script>
 <script>
 function togglePassword(inputId, btn) {
   const input = document.getElementById(inputId);
@@ -141,9 +156,4 @@ function togglePassword(inputId, btn) {
   }
 }
 </script>
-<!-- Firebase v9 compat SDKs -->
-<script src="/firebase-config.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
-<script src="/static/js/firebase-login-v9.js"></script>
 {% endblock %}

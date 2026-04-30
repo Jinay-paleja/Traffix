@@ -33,8 +33,8 @@
     .meta-row { grid-template-columns: 1fr; }
   }
   .meta-card {
-    background: var(--panel-bg);
-    border: 1px solid var(--panel-border);
+    background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02));
+    border: 1px solid rgba(255,255,255,0.08);
     border-radius: var(--radius-lg);
     padding: 18px 18px;
     box-shadow: var(--shadow-soft);
@@ -54,8 +54,8 @@
     margin-bottom: var(--space-6);
     padding: 18px 20px;
     border-radius: var(--radius-lg);
-    border: 1px solid var(--panel-border);
-    background: var(--panel-bg);
+    border: 1px solid rgba(255,255,255,0.08);
+    background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02));
     box-shadow: var(--shadow-soft);
   }
   .analysis-banner-top {
@@ -75,8 +75,7 @@
     font-size: 0.78rem;
     font-weight: 700;
     letter-spacing: 0.03em;
-    background: var(--panel-bg-solid);
-    border: 1px solid var(--panel-border);
+    background: rgba(255,255,255,0.05);
     color: var(--text-secondary);
   }
   .analysis-badge.good {
@@ -105,8 +104,8 @@
   }
 
   .section-card {
-    background: var(--panel-bg);
-    border: 1px solid var(--panel-border);
+    background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.015));
+    border: 1px solid rgba(255,255,255,0.08);
     border-radius: var(--radius-lg);
     padding: 24px;
     margin-bottom: var(--space-6);
@@ -116,43 +115,6 @@
     font-size: 1.125rem;
     margin-bottom: 14px;
   }
-
-  .next-actions {
-    display: grid;
-    gap: 12px;
-    margin-bottom: var(--space-8);
-  }
-  .next-action {
-    border-radius: 14px;
-    padding: 14px 16px;
-    border: 1px solid var(--panel-border);
-    background: var(--panel-bg-solid);
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 14px;
-    flex-wrap: wrap;
-  }
-  .next-action strong { font-weight: 800; }
-  .next-action-copy { color: var(--text-secondary); font-size: 0.9rem; }
-  .next-action-left { display: grid; gap: 4px; }
-  .next-action-pill {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    padding: 6px 10px;
-    border-radius: 999px;
-    font-size: 0.78rem;
-    font-weight: 800;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
-    border: 1px solid rgba(255,255,255,0.10);
-    background: rgba(255,255,255,0.04);
-    color: var(--text-secondary);
-  }
-  .next-action-pill.bad { background: rgba(248, 113, 113, 0.14); border-color: rgba(248, 113, 113, 0.22); color: #fca5a5; }
-  .next-action-pill.warn { background: rgba(251, 191, 36, 0.14); border-color: rgba(251, 191, 36, 0.22); color: #fde68a; }
-  .next-action-pill.good { background: rgba(52, 211, 153, 0.14); border-color: rgba(52, 211, 153, 0.22); color: #86efac; }
 
   .overview-grid {
     display: grid;
@@ -288,7 +250,7 @@
     border-radius: var(--radius);
     overflow: hidden;
     border: 1px solid rgba(148, 163, 184, 0.2);
-    background: var(--bg-elevated);
+    background: rgba(0,0,0,0.2);
   }
   .video-tile video {
     width: 100%;
@@ -308,7 +270,7 @@
     place-items: center;
     color: var(--text-muted);
     font-size: 0.95rem;
-    background: var(--bg-elevated);
+    background: rgba(0,0,0,0.25);
   }
   .form-row {
     display: grid;
@@ -327,8 +289,8 @@
     margin-top: 8px;
   }
   .lane-card {
-    background: var(--panel-bg);
-    border: 1px solid var(--panel-border);
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.08);
     border-radius: var(--radius-lg);
     padding: 18px;
   }
@@ -451,36 +413,6 @@
       </div>
     </div>
 
-    {% set offline_count = intersection.lanes|rejectattr('camera.status')|list|length %}
-    <section class="next-actions">
-      <article class="next-action">
-        <div class="next-action-left">
-          <div class="next-action-pill {{ 'bad' if offline_count > 0 else 'good' }}">
-            {{ offline_count }} offline camera{{ 's' if offline_count != 1 else '' }}
-          </div>
-          <div><strong>Enable cameras for full coverage</strong></div>
-          <div class="next-action-copy">Turning cameras on improves live monitoring and traffic analysis accuracy.</div>
-        </div>
-        <div class="detail-actions">
-          <a href="#lane-cameras" class="btn btn-primary btn-compact">Open cameras</a>
-        </div>
-      </article>
-
-      <article class="next-action">
-        <div class="next-action-left">
-          <div class="next-action-pill {{ intersection.analysis_snapshot.freshness_tone }}">
-            {{ intersection.analysis_snapshot.freshness_label }}
-          </div>
-          <div><strong>Run / refresh signal analysis</strong></div>
-          <div class="next-action-copy">Run a photo/video analysis to generate timing recommendations and a signal decision.</div>
-        </div>
-        <div class="detail-actions">
-          <a href="{{ url_for('smart_signal', intersection_id=intersection.id) }}" class="btn btn-secondary btn-compact">Signal control</a>
-          <a href="{{ url_for('signal_wall', intersection_id=intersection.id) }}" class="btn btn-ghost btn-compact">Signal view</a>
-        </div>
-      </article>
-    </section>
-
     <div class="meta-row">
       <div class="meta-card">
         <div class="label">Intersection ID</div>
@@ -514,8 +446,8 @@
       </div>
     </section>
 
-    <details class="section-card" open>
-      <summary class="section-title" style="cursor:pointer; list-style:none;">Update intersection</summary>
+    <div class="section-card">
+      <h2 class="section-title">Update intersection</h2>
       <form action="{{ url_for('intersection_update', intersection_id=intersection.id) }}" method="post">
         <div class="form-row">
           <div class="input-group">
@@ -529,10 +461,10 @@
         </div>
         <button type="submit" class="btn btn-primary" style="margin-top: 12px;">Save</button>
       </form>
-    </details>
+    </div>
 
-    <details class="section-card">
-      <summary class="section-title" style="cursor:pointer; list-style:none;">Intersection graphic</summary>
+    <div class="section-card">
+      <h2 class="section-title">Intersection graphic</h2>
       <div class="intersection-graphic">
         <div class="canvas">
           <div class="center">Core</div>
@@ -549,10 +481,10 @@
         </div>
       </div>
       <div class="webcam-status" data-webcam-status="1"></div>
-    </details>
+    </div>
 
-    <details class="section-card" id="lane-cameras" open>
-      <summary class="section-title" style="cursor:pointer; list-style:none;">Lane cameras</summary>
+    <div class="section-card">
+      <h2 class="section-title">Lane cameras</h2>
       <div class="lanes-grid">
         {% for lane in intersection.lanes %}
         <div class="lane-card">
@@ -617,7 +549,7 @@
         </div>
         {% endfor %}
       </div>
-    </details>
+    </div>
   </div>
 </main>
 {% endblock %}

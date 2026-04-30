@@ -1,0 +1,473 @@
+DEPARTMENT OF INFORMATION TECHNOLOGY
+
+
+Synopsis of Community Engagement PBL - Mini Project On
+
+Traffix - Smart Traffic Signal Optimizer and
+Intersection Monitoring Platform
+
+Prepared By:
+Manik Raikar
+Jinay Paleja
+Manas More
+Sanskruti Tayade
+
+Under the guidance of:
+Name of Guide: Dr. Radhika Kotecha
+Head of Department, Information Technology
+Academic Year: 2025-2026
+Autonomy Syllabus Scheme-III (2025-26) - SEMESTER III (SY - IT)
+
+
+CERTIFICATE
+
+This is to certify that the following students:
+
+Manik Raikar
+Jinay Paleja
+Manas More
+Sanskruti Tayade
+
+have submitted the Community Engagement PBL - Mini Project Report on
+"Traffix - Smart Traffic Signal Optimizer and Intersection Monitoring Platform"
+as partial fulfillment for the requirement of Third Year of Engineering
+(3rd Semester) in S.Y. - Information Technology under my guidance during
+the academic year 2025-2026.
+
+
+Dr. Radhika Kotecha
+Project Guide
+Professor and Head of Department
+Department of Information Technology
+
+
+Dr. Radhika Kotecha
+Head of Department
+Professor
+Department of Information Technology
+
+
+Date of Examination:
+
+
+Signature of Internal Examiner        Signature of External Examiner
+
+
+Table of Contents
+
+Acknowledgement
+Abstract
+Introduction
+Literature Review
+Functionalities of Proposed System
+Implementation Details and Results
+Sustainability Analysis and Testing
+Conclusion
+References
+
+
+Acknowledgement
+
+The successful completion of our project, Traffix - Smart Traffic Signal Optimizer
+and Intersection Monitoring Platform, has been a deeply enriching journey that
+strengthened our technical, analytical, and collaborative skills. This achievement
+would not have been possible without the support and encouragement of several
+individuals who contributed directly and indirectly throughout the course of this
+project.
+
+We express our sincere gratitude to our Project Guide, Dr. Radhika Kotecha,
+for her valuable guidance, continuous motivation, and expert insights at every stage
+of the project. Her suggestions helped us refine the project idea, improve the
+implementation approach, and align the work with real-world traffic management
+needs. Since she also serves as the Head of the Department, her leadership and
+academic vision inspired us to pursue a practical and impactful solution.
+
+We are also thankful to the faculty members of the Department of Information
+Technology for fostering an environment that encourages innovation, project-based
+learning, and meaningful problem solving. Their support motivated us to explore
+computer vision, machine learning, web development, and smart-city concepts in a
+single integrated platform.
+
+Finally, we thank our team members for their dedication, coordination, and
+consistent efforts. This project marks an important milestone in our learning as
+students and as future engineers aiming to build technology that benefits society.
+
+
+Abstract
+
+Urban traffic congestion is a growing challenge that affects travel time, fuel
+consumption, public safety, and environmental sustainability. Conventional traffic
+signals usually operate on fixed timers and fail to adapt dynamically to actual road
+conditions, resulting in unnecessary waiting times and inefficient traffic flow.
+Traffix is designed as a smart traffic signal optimizer and intersection monitoring
+platform that uses computer vision, machine learning, and web technologies to
+analyze traffic density and assist in adaptive signal management.
+
+The platform uses YOLO-based vehicle detection with OpenCV to identify and count
+vehicles from lane images or monitored traffic feeds. Based on the detected traffic
+load, the system recommends which road should receive the green phase and which
+roads should remain on stop. In addition to current signal optimization, Traffix also
+maintains historical traffic records and presents date-wise and time-wise analytics to
+support better traffic planning and intersection-level decision making.
+
+Through its dashboard, administrators can manage intersections, view lane camera
+status, monitor CCTV feeds, analyze congestion, and study traffic patterns across
+multiple roads. By integrating machine learning with a practical web-based control
+interface, Traffix demonstrates how intelligent systems can improve urban mobility,
+reduce waiting time, and support the broader vision of smart cities.
+
+
+Chapter 1 Introduction
+
+Traffix is a smart web-based traffic monitoring and signal optimization platform
+developed to improve intersection management using computer vision and machine
+learning. The system focuses on analyzing lane-wise traffic conditions, detecting
+vehicles, and recommending adaptive green-signal allocation based on real-time
+traffic density. It also provides a centralized dashboard for monitoring intersections,
+camera status, and traffic analytics over time.
+
+The proposed system supports intersection creation, lane and camera configuration,
+YOLO-based traffic analysis, smart signal recommendations, and historical analytics.
+By combining backend intelligence with a user-friendly web interface, Traffix makes
+traffic data easier to observe, interpret, and act upon. It aims to be useful as a
+learning prototype as well as a foundation for future smart-city traffic systems.
+
+1.1 Motivation
+
+In many urban areas, traffic signals still rely on fixed-time scheduling that does not
+reflect actual vehicle load at an intersection. As a result, roads with low traffic may
+receive unnecessary green time, while crowded roads continue to wait, increasing
+congestion, delays, and driver frustration. The need for smarter and more adaptive
+traffic control systems motivated the development of Traffix.
+
+The project is also motivated by the availability of modern AI and computer vision
+tools that make real-time traffic analysis more accessible. Technologies such as
+OpenCV, YOLO, and intelligent scheduling algorithms create an opportunity to build
+a practical and affordable prototype that can support efficient traffic management.
+
+1.2 Problem Analysis
+
+Most conventional traffic management systems lack dynamic adaptation to real-time
+traffic conditions. Common challenges include:
+
+- Fixed signal cycles that do not respond to actual congestion levels.
+- Lack of lane-wise traffic visibility at intersections.
+- Limited use of historical traffic data for time-based optimization.
+- Inadequate tools for combining camera monitoring, analytics, and signal decisions.
+- Difficulty in understanding which direction truly needs green priority.
+
+These limitations create a need for a system that can detect traffic load, analyze road
+conditions, and recommend signal timing in a more intelligent and data-driven way.
+
+1.3 Objectives
+
+- To build a web-based smart traffic monitoring and signal optimization platform.
+- To detect and count vehicles using YOLO and OpenCV from lane-level inputs.
+- To recommend which lane or road should be given green priority based on
+  detected traffic density.
+- To provide lane-wise and intersection-wise analytics by date and time.
+- To manage intersections, lane cameras, and traffic dashboards through a
+  centralized user interface.
+- To demonstrate the use of AI and machine learning in urban traffic control.
+
+1.4 Scope
+
+The scope of Traffix includes image-based traffic analysis, lane-wise congestion
+estimation, smart signal recommendation, live intersection monitoring, historical
+traffic analytics, and an administrator dashboard for managing intersections and
+cameras.
+
+Out of scope for the current phase are direct hardware integration with physical
+traffic lights, full-scale city-wide deployment, automatic emergency vehicle
+prioritization, and large-scale real-time networking of roadside infrastructure.
+These can be considered as future extensions.
+
+
+Chapter 2 Literature Review
+
+2.1 Related Work
+
+Intelligent traffic management has gained increasing importance with the growth of
+urban transportation systems. Several studies and technologies have shown that
+computer vision, machine learning, and adaptive control can significantly improve
+traffic flow and reduce congestion.
+
+Research on object detection systems such as YOLO has demonstrated strong
+performance in real-time vehicle detection, making it suitable for traffic surveillance
+applications. OpenCV-based computer vision systems have also proven effective in
+video and image processing tasks such as motion detection, object tracking, and
+lane-level monitoring.
+
+Adaptive traffic signal control systems in the literature focus on adjusting signal
+timings using current traffic density, queue length, or predictive models. These
+approaches improve road efficiency when compared with fixed-time signals. Web
+dashboards for smart-city monitoring have further shown the value of centralized
+observation, analytics, and decision support for urban infrastructure.
+
+Traffix draws from these concepts by combining YOLO-based traffic detection,
+OpenCV processing, signal optimization logic, and a browser-based traffic control
+dashboard.
+
+2.2 Existing System
+
+The existing traffic control approach at many intersections is based on pre-defined
+timers, manual observation, or isolated CCTV monitoring. While cameras may be
+available, the information often remains underutilized because it is not directly linked
+to intelligent signal planning.
+
+In traditional systems:
+
+- Signals may continue following fixed cycles even when one road is empty.
+- Manual analysis is time-consuming and cannot scale well across intersections.
+- Historical traffic trends are rarely visualized in a simple way for planning.
+- Existing dashboards may show camera feeds but not provide AI-based
+  recommendations.
+
+These limitations show the need for a platform like Traffix that can unify monitoring,
+analysis, optimization, and historical insights.
+
+
+Chapter 3 Proposed System
+
+3.1 Functionalities of the System
+
+The proposed system, Traffix, is designed as a modular traffic intelligence platform
+that supports real-time lane analysis, adaptive signal recommendations, and
+intersection-level monitoring. The key functionalities are:
+
+1. Authentication and User Management Module
+- Secure login and registration for platform users.
+- Session-based authentication for protected routes.
+- Profile management for authorized users.
+
+2. Intersection Management Module
+- Add, edit, and remove intersections.
+- Configure number of roads and lane directions.
+- Maintain camera mappings and lane metadata for each intersection.
+
+3. Traffic Detection Module
+- Upload lane images for analysis.
+- Detect vehicles using YOLO and OpenCV.
+- Count traffic-relevant vehicles such as cars, bikes, buses, and trucks.
+- Estimate traffic density as Low, Medium, High, or Critical.
+
+4. Signal Optimization Module
+- Allocate adaptive green time based on detected traffic pressure.
+- Recommend the next road to receive green.
+- Mark remaining lanes as stop directions.
+- Generate a cycle schedule including green, yellow, and all-red durations.
+
+5. Monitoring Module
+- Display lane cameras in an organized intersection view.
+- Support lane status visibility and camera enable/disable controls.
+- Provide CCTV-style monitoring for live observation of configured lanes.
+
+6. Historical Analytics Module
+- Store traffic analysis results over time.
+- Analyze traffic by date and time.
+- Show busiest lane, peak hour, and average intersection load.
+- Visualize trends for lane-wise and overall traffic patterns.
+
+7. Dashboard and Reporting Module
+- Display signal recommendations, analytics, and lane summaries.
+- Present insights about congestion across lanes and intersections.
+- Support smart-city style monitoring through a responsive web interface.
+
+3.2 Proposed Approach and Details
+
+Traffix follows a layered architecture that integrates computer vision with a Flask-
+based web application. The presentation layer consists of responsive HTML, CSS,
+and JavaScript interfaces for administrators and users. The application layer is built
+using Flask and contains modules for authentication, intersection management,
+traffic analysis, and signal optimization. The data layer uses JSON-based storage for
+users, intersections, and traffic history, which can later be replaced by a scalable
+database in future versions.
+
+The traffic analysis flow begins when lane images are uploaded for a selected
+intersection. The system processes each image using OpenCV and the YOLO model
+to detect traffic vehicles. Vehicle counts are converted into density levels and then
+passed to the signal optimizer. Based on comparative lane load, the optimizer
+generates green-time allocation and recommends the road that should receive the
+next green phase.
+
+In addition, the system stores real analysis results with timestamps so that traffic
+patterns can later be visualized through hourly, daily, and lane-wise summaries.
+
+3.3 Innovation in Idea
+
+1. AI-Based Lane Prioritization
+- Uses vehicle detection and traffic density to decide which road needs green priority.
+
+2. Unified Monitoring and Optimization
+- Combines CCTV-style monitoring with analysis and decision support in one system.
+
+3. Historical Smart Analytics
+- Tracks time-based traffic behavior to help identify recurring congestion patterns.
+
+4. Practical Smart-City Prototype
+- Demonstrates how affordable AI tools can support adaptive traffic management.
+
+5. Scalable Platform Design
+- The system can be extended to support live video analysis, IoT hardware
+  integration, emergency vehicle handling, and predictive traffic forecasting.
+
+3.4 Timeline
+
+Phase 1: Problem Identification and Requirement Analysis
+Phase 2: Literature Review and System Design
+Phase 3: Frontend and Backend Development
+Phase 4: Integration of OpenCV and YOLO Traffic Detection
+Phase 5: Signal Optimization and Dashboard Analytics
+Phase 6: Testing, Documentation, and Final Demonstration
+
+3.5 Roles and Responsibilities
+
+- Manik Raikar: Backend development, traffic analytics integration, synopsis support
+- Jinay Paleja: Frontend development, dashboard flow, intersection management UI
+- Manas More: Computer vision, YOLO integration, traffic detection logic
+- Sanskruti Tayade: UI/UX design, documentation, content structuring
+
+
+Chapter 4 Implementation Details and Results
+
+The implementation phase of Traffix focused on building a working prototype that
+connects machine learning traffic analysis with a web-based intersection dashboard.
+The system was developed as an integrated platform capable of handling user
+authentication, intersection management, traffic detection, signal recommendation,
+and analytics display.
+
+4.1 Technology Tech Stack
+
+Backend Technologies
+1. Python
+- Used for core server-side logic and machine learning integration.
+
+2. Flask
+- Used to build the web application, route handling, templates, and APIs.
+
+3. Firebase Authentication / Admin SDK
+- Used for user registration, authentication support, and secure identity management.
+
+4. OpenCV
+- Used for image handling and traffic frame preprocessing.
+
+5. Ultralytics YOLO
+- Used for vehicle detection from traffic images.
+
+6. NumPy
+- Used for array operations during image decoding and processing.
+
+Frontend Technologies
+1. HTML5 and CSS3
+- Used for structured and responsive page layouts.
+
+2. JavaScript
+- Used for interactivity, AJAX requests, and smart dashboard updates.
+
+3. Responsive Dashboard Design
+- Used for lane cards, signal visualization, charts, and traffic summaries.
+
+4.2 Implementation Parameters
+
+- Backend Port: 5000
+- Frontend Rendering: Flask templates served through the backend
+- Input Types: Traffic lane image uploads
+- Supported File Types: JPG, JPEG, PNG, WebP
+- Data Files:
+  - Users data
+  - Intersections data
+  - Traffic history data
+- Signal Metrics:
+  - Minimum green time per lane
+  - Maximum green time per lane
+  - Yellow phase duration
+  - All-red safety phase duration
+
+Preliminary Results
+
+The Traffix portal was successfully implemented and evaluated as a local prototype.
+Key observations include:
+
+- A functional dashboard for login, profile access, and intersection management.
+- Dynamic intersection detail pages with lane and camera configuration.
+- YOLO-based vehicle detection from uploaded traffic images.
+- Smart signal suggestions that identify the most congested road and assign green
+  time accordingly.
+- Historical traffic analytics showing how intersection load changes over time.
+- A smart-signal page that combines live decision support with visual traffic analysis.
+
+
+Chapter 5 Sustainability Analysis and Testing
+
+Traffix is designed as a technically sustainable and socially useful platform that can
+support future smart traffic initiatives.
+
+5.1 Sustainability Analysis
+
+1. Technical Sustainability
+- Modular design separates traffic detection, signal optimization, and web control.
+- The architecture supports future scaling to databases, live streams, and IoT-based
+  traffic controllers.
+
+2. Operational Sustainability
+- Automates signal recommendation based on road demand.
+- Reduces dependency on purely manual traffic observation.
+
+3. Environmental Sustainability
+- Better signal timing can reduce idle vehicle waiting time and fuel wastage.
+- Lower congestion contributes to reduced emissions.
+
+4. Social Sustainability
+- Supports safer and more efficient road movement.
+- Encourages the use of intelligent systems in urban public infrastructure.
+
+5.2 Testing Methodology
+
+1. Functional Testing
+- Tested login, intersection creation, lane analysis, and dashboard navigation.
+
+2. White Box Testing
+- Verified backend logic for vehicle aggregation, history generation, and signal
+  optimization flow.
+
+3. Black Box Testing
+- Validated expected input-output behavior for uploads, traffic summaries, and signal
+  decisions.
+
+4. Interface Testing
+- Checked visual rendering of dashboards, traffic signal states, and analytics cards.
+
+5. Preliminary Validation
+- Confirmed that lane-wise congestion results lead to different signal priorities.
+- Verified that traffic history updates after each real analysis run.
+
+
+Chapter 6 Conclusion
+
+Traffix provides a practical and innovative approach to smart traffic management by
+combining machine learning, computer vision, and web-based monitoring. The
+system successfully demonstrates how lane-wise vehicle detection can support better
+signal planning and help identify which road should receive green priority at an
+intersection.
+
+With features such as traffic image analysis, signal optimization, historical analytics,
+and intersection monitoring, Traffix serves as a strong prototype for future smart-city
+traffic systems. The project not only improves understanding of AI-powered traffic
+control but also highlights the broader benefits of adaptive infrastructure in reducing
+congestion, improving efficiency, and supporting safer urban mobility.
+
+
+References
+
+- G. Bradski, "The OpenCV Library," Dr. Dobb's Journal of Software Tools, 2000.
+- J. Redmon, S. Divvala, R. Girshick, and A. Farhadi, "You Only Look Once:
+  Unified, Real-Time Object Detection," Proceedings of the IEEE Conference on
+  Computer Vision and Pattern Recognition, 2016.
+- A. Bochkovskiy, C.-Y. Wang, and H.-Y. M. Liao, "YOLOv4: Optimal Speed and
+  Accuracy of Object Detection," arXiv preprint arXiv:2004.10934, 2020.
+- Ultralytics Documentation, "YOLO Documentation," https://docs.ultralytics.com/
+- OpenCV Documentation, "Open Source Computer Vision Library,"
+  https://docs.opencv.org/
+- Flask Documentation, "Flask Web Development Documentation,"
+  https://flask.palletsprojects.com/
+
