@@ -253,6 +253,9 @@
       </div>
       <div class="page-actions">
         <a href="#add-intersection" class="btn btn-primary">Add intersection</a>
+        <form action="{{ url_for('firestore_force_sync') }}" method="post" onsubmit="return confirm('Force sync will replace Firestore data with local JSON. Continue?');" style="display:inline;">
+          <button type="submit" class="btn btn-ghost">Force sync Firestore</button>
+        </form>
         <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">Back to dashboard</a>
       </div>
     </section>

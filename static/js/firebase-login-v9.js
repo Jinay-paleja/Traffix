@@ -1,24 +1,27 @@
 // Firebase v9 compat (legacy namespace) for stable Google Sign-In - Traffix
 // Use v9.0 compat layer for firebase.auth() global API (avoid v10 module issues on localhost)
 
-const firebaseConfig = {
-  apiKey: "AIzaSyC-tnjkrhHygkG60Nq0yOk0Y4W3oFqpHsI",
-  authDomain: "traffix-40acf.firebaseapp.com",
-  projectId: "traffix-40acf",
-  storageBucket: "traffix-40acf.firebasestorage.app",
-  messagingSenderId: "622309834466",
-  appId: "1:622309834466:web:04e38961b2ff6be12828bb",
-  measurementId: "G-27655CG8PK"
-};
+const firebaseConfig = window.FIREBASE_WEB_CONFIG || {};
+const requiredConfigFields = ["apiKey", "authDomain", "projectId", "appId"];
+const missingConfigFields = requiredConfigFields.filter((key) => !firebaseConfig[key]);
+
+if (missingConfigFields.length) {
+  console.error("Missing Firebase web config fields:", missingConfigFields.join(", "));
+  alert("Firebase is not configured for this app yet. Please set FIREBASE_WEB_* environment variables.");
+}
 
 // Initialize only if not already
-if (!window.firebaseAppsInitialized) {
+if (!window.firebaseAppsInitialized && missingConfigFields.length === 0) {
   window.firebaseConfig = firebaseConfig;  // Global config
   firebase.initializeApp(firebaseConfig);
   window.firebaseAppsInitialized = true;
   console.log('Firebase initialized successfully');
 } else {
   console.log('Firebase already initialized');
+}
+
+if (missingConfigFields.length > 0) {
+  throw new Error("Firebase client configuration missing");
 }
 
 const auth = firebase.auth();

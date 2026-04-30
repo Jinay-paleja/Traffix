@@ -16,19 +16,99 @@ Python web application (Flask).
 import os
 import json
 from pathlib import Path
+from datetime import datetime, UTC
 
-from flask import Flask, render_template, request, redirect, url_for, flash, session
+from flask import Flask, render_template, request, redirect, url_for, flash, session, Response
 from werkzeug.security import generate_password_hash, check_password_hash
 
 # Firebase Admin SDK
 import firebase_admin
 from firebase_admin import credentials
-
-# Initialize Firebase Admin with service account
-cred = credentials.Certificate("traffix-40acf-firebase-adminsdk-fbsvc-b4a43d8111.json")
-firebase_admin.initialize_app(cred)
+from firebase_admin import firestore
 
 from firebase_admin import auth
+
+BASE_DIR = Path(__file__).resolve().parent
+
+
+def _load_local_env_file():
+    env_path = BASE_DIR / ".env"
+    if not env_path.exists():
+        return
+    try:
+        for raw_line in env_path.read_text(encoding="utf-8").splitlines():
+            line = raw_line.strip()
+            if not line or line.startswith("#") or "=" not in line:
+                continue
+            key, value = line.split("=", 1)
+            key = key.strip()
+            value = value.strip()
+            if not key:
+                continue
+            # Keep existing process env precedence (e.g. deployment env vars)
+            if key not in os.environ:
+                os.environ[key] = value
+    except Exception:
+        # If .env parsing fails, continue with normal env vars.
+        pass
+
+
+_load_local_env_file()
+
+
+def _get_service_account_path():
+    env_path = os.environ.get("FIREBASE_SERVICE_ACCOUNT_PATH", "").strip()
+    if env_path:
+        p = Path(env_path)
+        if not p.is_absolute():
+            p = BASE_DIR / p
+        return p
+
+    default_name = "traffix-40acf-firebase-adminsdk-fbsvc-b4a43d8111.json"
+    default_path = BASE_DIR / default_name
+    if default_path.exists():
+        return default_path
+
+    discovered = sorted(BASE_DIR.glob("*-firebase-adminsdk-*.json"))
+    if discovered:
+        return discovered[0]
+    return None
+
+
+def _initialize_firebase_admin():
+    if firebase_admin._apps:
+        return
+
+    service_account_json = os.environ.get("FIREBASE_SERVICE_ACCOUNT_JSON", "").strip()
+    if service_account_json:
+        parsed = json.loads(service_account_json)
+        cred = credentials.Certificate(parsed)
+        firebase_admin.initialize_app(cred)
+        return
+
+    service_account_path = _get_service_account_path()
+    if service_account_path and service_account_path.exists():
+        cred = credentials.Certificate(str(service_account_path))
+        firebase_admin.initialize_app(cred)
+        return
+
+    raise RuntimeError(
+        "Firebase Admin is not configured. Set FIREBASE_SERVICE_ACCOUNT_PATH or "
+        "FIREBASE_SERVICE_ACCOUNT_JSON with your Firebase service account credentials."
+    )
+
+
+def _firebase_web_config():
+    return {
+        "apiKey": os.environ.get("FIREBASE_WEB_API_KEY", "").strip(),
+        "authDomain": os.environ.get("FIREBASE_WEB_AUTH_DOMAIN", "").strip(),
+        "projectId": os.environ.get("FIREBASE_WEB_PROJECT_ID", "").strip(),
+        "storageBucket": os.environ.get("FIREBASE_WEB_STORAGE_BUCKET", "").strip(),
+        "messagingSenderId": os.environ.get("FIREBASE_WEB_MESSAGING_SENDER_ID", "").strip(),
+        "appId": os.environ.get("FIREBASE_WEB_APP_ID", "").strip(),
+        "measurementId": os.environ.get("FIREBASE_WEB_MEASUREMENT_ID", "").strip(),
+    }
+
 
 # Firebase Authentication helper functions
 def create_firebase_user(email, password, display_name=None):
@@ -49,12 +129,25 @@ def verify_firebase_token(id_token):
     except Exception as e:
         return None
 
-BASE_DIR = Path(__file__).resolve().parent
 app = Flask(__name__, template_folder=str(BASE_DIR / "templates"), static_folder=str(BASE_DIR / "static"))
 app.secret_key = os.environ.get("SECRET_KEY", "traffix-dev-secret-change-in-production")
+_initialize_firebase_admin()
+db = firestore.client()
 
 USERS_FILE = BASE_DIR / "data" / "users.json"
 INTERSECTIONS_FILE = BASE_DIR / "data" / "intersections.json"
+
+USERS_COLLECTION = "users"
+INTERSECTIONS_COLLECTION = "intersections"
+LANES_COLLECTION = "lanes"
+CAMERAS_COLLECTION = "cameras"
+TRAFFIC_ANALYSES_COLLECTION = "traffic_analyses"
+LANE_ANALYSES_COLLECTION = "lane_analyses"
+LANE_MEDIA_COLLECTION = "lane_media"
+
+
+def _utc_now_iso():
+    return datetime.now(UTC).isoformat()
 
 
 def _normalize_intersections(intersections):
@@ -142,31 +235,210 @@ def _normalize_intersections(intersections):
 
 
 def load_intersections():
-    if not INTERSECTIONS_FILE.exists():
-        return []
     try:
-        with open(INTERSECTIONS_FILE, "r", encoding="utf-8") as f:
-            data = f.read().strip()
-            if not data:
-                return []
-            intersections = json.loads(data).get("intersections", [])
-            intersections, changed = _normalize_intersections(intersections)
-            if changed:
-                save_intersections(intersections)
-            return intersections
-    except (json.JSONDecodeError, OSError):
+        intersections = []
+        intersection_docs = db.collection(INTERSECTIONS_COLLECTION).stream()
+        for doc in intersection_docs:
+            payload = doc.to_dict() or {}
+            intersection_id = payload.get("id") or doc.id
+
+            lane_docs = db.collection(LANES_COLLECTION).where("intersection_id", "==", intersection_id).stream()
+            lanes = []
+            for lane_doc in lane_docs:
+                lane_payload = lane_doc.to_dict() or {}
+                lane_id = lane_payload.get("id") or lane_doc.id
+                camera_id = lane_payload.get("camera_id")
+
+                camera = {"id": camera_id}
+                if camera_id:
+                    camera_doc = db.collection(CAMERAS_COLLECTION).document(camera_id).get()
+                    if camera_doc.exists:
+                        camera_data = camera_doc.to_dict() or {}
+                        camera = {
+                            "id": camera_data.get("id", camera_id),
+                            "name": camera_data.get("name", f"{lane_payload.get('direction', 'Lane').title()} Lane Camera"),
+                            "status": bool(camera_data.get("status", True)),
+                            "stream_url": camera_data.get("stream_url", f"https://example.com/stream/{camera_id}"),
+                        }
+
+                lanes.append(
+                    {
+                        "id": lane_id,
+                        "name": lane_payload.get("name", "Lane"),
+                        "direction": lane_payload.get("direction", "unknown"),
+                        "camera": camera,
+                    }
+                )
+
+            intersection = {
+                "id": intersection_id,
+                "name": payload.get("name", "Unnamed intersection"),
+                "location": payload.get("location", "Unknown location"),
+                "num_roads": int(payload.get("num_roads", len(lanes) or 4)),
+                "status": payload.get("status", "active"),
+                "lanes": lanes,
+            }
+            intersections.append(intersection)
+
+        intersections, _ = _normalize_intersections(intersections)
+        intersections.sort(key=lambda i: i.get("id", ""))
+        return intersections
+    except Exception:
         return []
 
 
 def save_intersections(intersections):
-    INTERSECTIONS_FILE.parent.mkdir(parents=True, exist_ok=True)
-    with open(INTERSECTIONS_FILE, "w", encoding="utf-8") as f:
-        json.dump({"intersections": intersections}, f, indent=2)
+    for intersection in intersections or []:
+        intersection_id = intersection.get("id")
+        if not intersection_id:
+            continue
+        now = _utc_now_iso()
+        db.collection(INTERSECTIONS_COLLECTION).document(intersection_id).set(
+            {
+                "id": intersection_id,
+                "name": intersection.get("name", "Unnamed intersection"),
+                "location": intersection.get("location", "Unknown location"),
+                "num_roads": int(intersection.get("num_roads", 4)),
+                "status": intersection.get("status", "active"),
+                "updated_at": now,
+            },
+            merge=True,
+        )
+
+        for lane in intersection.get("lanes", []):
+            lane_id = lane.get("id")
+            camera = lane.get("camera") or {}
+            if not lane_id:
+                continue
+            db.collection(LANES_COLLECTION).document(lane_id).set(
+                {
+                    "id": lane_id,
+                    "intersection_id": intersection_id,
+                    "name": lane.get("name", "Lane"),
+                    "direction": lane.get("direction", "unknown"),
+                    "camera_id": camera.get("id"),
+                    "updated_at": now,
+                },
+                merge=True,
+            )
+            if camera.get("id"):
+                db.collection(CAMERAS_COLLECTION).document(camera["id"]).set(
+                    {
+                        "id": camera["id"],
+                        "intersection_id": intersection_id,
+                        "lane_id": lane_id,
+                        "name": camera.get("name", "Lane Camera"),
+                        "status": bool(camera.get("status", True)),
+                        "stream_url": camera.get("stream_url", f"https://example.com/stream/{camera['id']}"),
+                        "updated_at": now,
+                    },
+                    merge=True,
+                )
+
+
+def bootstrap_firestore_from_json():
+    has_intersections = any(True for _ in db.collection(INTERSECTIONS_COLLECTION).limit(1).stream())
+    if (not has_intersections) and INTERSECTIONS_FILE.exists():
+        try:
+            with open(INTERSECTIONS_FILE, "r", encoding="utf-8") as f:
+                data = f.read().strip()
+                if data:
+                    intersections = json.loads(data).get("intersections", [])
+                    intersections, _ = _normalize_intersections(intersections)
+                    save_intersections(intersections)
+        except Exception:
+            pass
+
+    has_users = any(True for _ in db.collection(USERS_COLLECTION).limit(1).stream())
+    if (not has_users) and USERS_FILE.exists():
+        try:
+            with open(USERS_FILE, "r", encoding="utf-8") as f:
+                data = f.read().strip()
+                if not data:
+                    return
+                users = json.loads(data)
+                now = _utc_now_iso()
+                for email, user in (users or {}).items():
+                    uid = user.get("uid") or user.get("user_id")
+                    if not uid:
+                        continue
+                    db.collection(USERS_COLLECTION).document(uid).set(
+                        {
+                            "user_id": uid,
+                            "uid": uid,
+                            "name": user.get("name", email),
+                            "email": email.strip().lower(),
+                            "role": user.get("role", "operator"),
+                            "updated_at": now,
+                        },
+                        merge=True,
+                    )
+        except Exception:
+            pass
+
+
+def _delete_collection(collection_name):
+    docs = list(db.collection(collection_name).stream())
+    for doc in docs:
+        doc.reference.delete()
+    return len(docs)
+
+
+def force_sync_firestore_from_json():
+    deleted = {}
+    import_order = []
+
+    # Delete child collections first, then parents.
+    for collection_name in [
+        LANE_MEDIA_COLLECTION,
+        LANE_ANALYSES_COLLECTION,
+        TRAFFIC_ANALYSES_COLLECTION,
+        CAMERAS_COLLECTION,
+        LANES_COLLECTION,
+        INTERSECTIONS_COLLECTION,
+        USERS_COLLECTION,
+    ]:
+        deleted[collection_name] = _delete_collection(collection_name)
+
+    if INTERSECTIONS_FILE.exists():
+        with open(INTERSECTIONS_FILE, "r", encoding="utf-8") as f:
+            data = f.read().strip()
+            if data:
+                intersections = json.loads(data).get("intersections", [])
+                intersections, _ = _normalize_intersections(intersections)
+                save_intersections(intersections)
+                import_order.append("intersections")
+
+    if USERS_FILE.exists():
+        with open(USERS_FILE, "r", encoding="utf-8") as f:
+            data = f.read().strip()
+            if data:
+                users = json.loads(data)
+                now = _utc_now_iso()
+                for email, user in (users or {}).items():
+                    uid = user.get("uid") or user.get("user_id")
+                    if not uid:
+                        continue
+                    db.collection(USERS_COLLECTION).document(uid).set(
+                        {
+                            "user_id": uid,
+                            "uid": uid,
+                            "name": user.get("name", email),
+                            "email": email.strip().lower(),
+                            "role": user.get("role", "operator"),
+                            "updated_at": now,
+                        },
+                        merge=True,
+                    )
+                import_order.append("users")
+
+    return {"deleted": deleted, "imported": import_order}
 
 
 # Migrate/normalize stored intersection data on startup (safe no-op if already clean).
 # This prevents duplicate lane IDs/camera IDs from breaking detail pages and toggles.
 try:
+    bootstrap_firestore_from_json()
     _ = load_intersections()
 except Exception:
     # Avoid crashing the app if the data file is unreadable; routes will handle empty data.
@@ -182,34 +454,65 @@ def get_intersection(intersection_id):
 
 
 def toggle_camera(intersection_id, lane_id):
-    intersections = load_intersections()
-    for intersection in intersections:
-        if intersection["id"] == intersection_id:
-            for lane in intersection.get("lanes", []):
-                if lane["id"] == lane_id:
-                    if "stream_url" not in lane["camera"]:
-                        lane["camera"]["stream_url"] = f"https://example.com/stream/{lane['camera']['id']}"
-                    lane["camera"]["status"] = not lane["camera"]["status"]
-                    save_intersections(intersections)
-                    return True
+    try:
+        lane_doc = db.collection(LANES_COLLECTION).document(lane_id).get()
+        if not lane_doc.exists:
+            return False
+        lane = lane_doc.to_dict() or {}
+        if lane.get("intersection_id") != intersection_id:
+            return False
+
+        camera_id = lane.get("camera_id")
+        if not camera_id:
+            return False
+
+        camera_ref = db.collection(CAMERAS_COLLECTION).document(camera_id)
+        camera_doc = camera_ref.get()
+        camera_data = camera_doc.to_dict() or {}
+        new_status = not bool(camera_data.get("status", True))
+        camera_ref.set(
+            {
+                "status": new_status,
+                "stream_url": camera_data.get("stream_url", f"https://example.com/stream/{camera_id}"),
+                "updated_at": _utc_now_iso(),
+            },
+            merge=True,
+        )
+        return True
+    except Exception:
+        return False
     return False
 
 
 def set_all_cameras(intersection_id, enabled):
-    intersections = load_intersections()
-    for intersection in intersections:
-        if intersection["id"] == intersection_id:
-            changed = False
-            for lane in intersection.get("lanes", []):
-                camera = lane.get("camera") or {}
-                if "stream_url" not in camera:
-                    camera["stream_url"] = f"https://example.com/stream/{camera.get('id', lane['id'])}"
-                if camera.get("status") != enabled:
-                    camera["status"] = enabled
-                    changed = True
-            if changed:
-                save_intersections(intersections)
-            return True
+    try:
+        intersection_doc = db.collection(INTERSECTIONS_COLLECTION).document(intersection_id).get()
+        if not intersection_doc.exists:
+            return False
+        lane_docs = db.collection(LANES_COLLECTION).where("intersection_id", "==", intersection_id).stream()
+        changed_any = False
+        now = _utc_now_iso()
+        for lane_doc in lane_docs:
+            lane = lane_doc.to_dict() or {}
+            camera_id = lane.get("camera_id")
+            if not camera_id:
+                continue
+            cam_ref = db.collection(CAMERAS_COLLECTION).document(camera_id)
+            cam_doc = cam_ref.get()
+            cam_data = cam_doc.to_dict() or {}
+            if bool(cam_data.get("status", True)) != enabled:
+                changed_any = True
+            cam_ref.set(
+                {
+                    "status": enabled,
+                    "stream_url": cam_data.get("stream_url", f"https://example.com/stream/{camera_id}"),
+                    "updated_at": now,
+                },
+                merge=True,
+            )
+        return True
+    except Exception:
+        return False
     return False
 
 
@@ -252,35 +555,168 @@ def add_intersection(name, location, num_roads=4):
         "status": "active",
         "lanes": lanes
     }
-    intersections.append(new_intersection)
-    save_intersections(intersections)
+    save_intersections([new_intersection])
     return new_intersection
 
 
 def remove_intersection(intersection_id):
-    intersections = load_intersections()
-    intersections = [i for i in intersections if i["id"] != intersection_id]
-    save_intersections(intersections)
-    return True
+    try:
+        lane_docs = list(db.collection(LANES_COLLECTION).where("intersection_id", "==", intersection_id).stream())
+        lane_ids = []
+        for lane_doc in lane_docs:
+            lane_data = lane_doc.to_dict() or {}
+            camera_id = lane_data.get("camera_id")
+            lane_ids.append(lane_doc.id)
+            if camera_id:
+                db.collection(CAMERAS_COLLECTION).document(camera_id).delete()
+            db.collection(LANES_COLLECTION).document(lane_doc.id).delete()
+
+        analysis_docs = list(db.collection(TRAFFIC_ANALYSES_COLLECTION).where("intersection_id", "==", intersection_id).stream())
+        analysis_ids = [d.id for d in analysis_docs]
+        for analysis_id in analysis_ids:
+            db.collection(TRAFFIC_ANALYSES_COLLECTION).document(analysis_id).delete()
+
+        for lane_id in lane_ids:
+            lane_analysis_docs = db.collection(LANE_ANALYSES_COLLECTION).where("lane_id", "==", lane_id).stream()
+            for lane_analysis in lane_analysis_docs:
+                lane_analysis_id = lane_analysis.id
+                db.collection(LANE_ANALYSES_COLLECTION).document(lane_analysis_id).delete()
+                media_docs = db.collection(LANE_MEDIA_COLLECTION).where("lane_analysis_id", "==", lane_analysis_id).stream()
+                for media_doc in media_docs:
+                    db.collection(LANE_MEDIA_COLLECTION).document(media_doc.id).delete()
+
+        db.collection(INTERSECTIONS_COLLECTION).document(intersection_id).delete()
+        return True
+    except Exception:
+        return False
+
+
+def record_traffic_analysis(intersection_id, analysis_mode, event_duration_minutes=1):
+    intersection = get_intersection(intersection_id)
+    if not intersection:
+        return
+
+    now = _utc_now_iso()
+    lanes = intersection.get("lanes", [])
+    total_vehicles = 0
+    active_lane_count = 0
+
+    analysis_ref = db.collection(TRAFFIC_ANALYSES_COLLECTION).document()
+    analysis_id = analysis_ref.id
+    analysis_ref.set(
+        {
+            "analysis_id": analysis_id,
+            "intersection_id": intersection_id,
+            "analysis_mode": analysis_mode,
+            "timestamp": now,
+            "event_duration_minutes": event_duration_minutes,
+            "lanes_analyzed": len(lanes),
+            "total_vehicles": 0,
+            "green_time": 30,
+        },
+        merge=True,
+    )
+
+    for lane in lanes:
+        lane_id = lane.get("id")
+        if not lane_id:
+            continue
+        camera = lane.get("camera") or {}
+        vehicle_count = 0
+        density_level = "low"
+        suggested_green_time = 30
+        if camera.get("status"):
+            active_lane_count += 1
+        total_vehicles += vehicle_count
+
+        lane_analysis_ref = db.collection(LANE_ANALYSES_COLLECTION).document()
+        lane_analysis_id = lane_analysis_ref.id
+        lane_analysis_ref.set(
+            {
+                "lane_analysis_id": lane_analysis_id,
+                "analysis_id": analysis_id,
+                "lane_id": lane_id,
+                "vehicle_count": vehicle_count,
+                "density_level": density_level,
+                "suggested_green_time": suggested_green_time,
+                "timestamp": now,
+            },
+            merge=True,
+        )
+
+        if camera.get("id"):
+            media_ref = db.collection(LANE_MEDIA_COLLECTION).document()
+            media_id = media_ref.id
+            media_ref.set(
+                {
+                    "media_id": media_id,
+                    "lane_analysis_id": lane_analysis_id,
+                    "camera_id": camera.get("id"),
+                    "video_url": camera.get("stream_url", f"https://example.com/stream/{camera.get('id')}"),
+                    "uploaded_at": now,
+                    "analysis_timestamp": now,
+                    "event_duration_minutes": event_duration_minutes,
+                },
+                merge=True,
+            )
+
+    analysis_ref.set(
+        {
+            "total_vehicles": total_vehicles,
+            "green_time": 30 + (5 if active_lane_count > 2 else 0),
+        },
+        merge=True,
+    )
 
 
 def load_users():
-    if not USERS_FILE.exists():
-        return {}
     try:
-        with open(USERS_FILE, "r", encoding="utf-8") as f:
-            data = f.read().strip()
-            if not data:
-                return {}
-            return json.loads(data)
-    except (json.JSONDecodeError, OSError):
+        users = {}
+        for doc in db.collection(USERS_COLLECTION).stream():
+            payload = doc.to_dict() or {}
+            email = (payload.get("email") or "").strip().lower()
+            if email:
+                users[email] = payload
+        return users
+    except Exception:
         return {}
 
 
 def save_users(users):
-    USERS_FILE.parent.mkdir(parents=True, exist_ok=True)
-    with open(USERS_FILE, "w", encoding="utf-8") as f:
-        json.dump(users, f, indent=2)
+    now = _utc_now_iso()
+    for _, payload in (users or {}).items():
+        email = (payload.get("email") or "").strip().lower()
+        uid = payload.get("uid")
+        if not email or not uid:
+            continue
+        db.collection(USERS_COLLECTION).document(uid).set(
+            {
+                "user_id": uid,
+                "uid": uid,
+                "name": payload.get("name", ""),
+                "email": email,
+                "role": payload.get("role", "operator"),
+                "updated_at": now,
+            },
+            merge=True,
+        )
+
+
+def sync_user_profile(uid, email, name, role="operator"):
+    if not uid or not email:
+        return
+    now = _utc_now_iso()
+    db.collection(USERS_COLLECTION).document(uid).set(
+        {
+            "user_id": uid,
+            "uid": uid,
+            "name": name or email,
+            "email": email.strip().lower(),
+            "role": role,
+            "updated_at": now,
+        },
+        merge=True,
+    )
 
 
 def get_user_by_email(email):
@@ -293,6 +729,7 @@ def register_user(name, email, password):
     try:
         user = create_firebase_user(email=email, password=password, display_name=name)
         if user:
+            sync_user_profile(user.uid, email, name, role="operator")
             return True, None
         else:
             return False, "Failed to create user in Firebase."
@@ -314,6 +751,13 @@ def index():
     return render_template("index.html")
 
 
+@app.route("/firebase-config.js")
+def firebase_config_js():
+    config = _firebase_web_config()
+    body = "window.FIREBASE_WEB_CONFIG = " + json.dumps(config) + ";"
+    return Response(body, mimetype="application/javascript")
+
+
 @app.route("/login", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
@@ -329,6 +773,7 @@ def login():
             session["user_uid"] = decoded["uid"]
             session["user_email"] = decoded["email"]
             session["user_name"] = decoded.get("name", decoded["email"])
+            sync_user_profile(decoded["uid"], decoded["email"], session["user_name"], role="operator")
             return {"success": True, "message": "Login successful."}
         else:
             # Fallback for form-based login
@@ -344,6 +789,7 @@ def login():
                 session["user_uid"] = user.uid
                 session["user_email"] = user.email
                 session["user_name"] = user.display_name or user.email
+                sync_user_profile(user.uid, user.email, session["user_name"], role="operator")
                 flash(f"Welcome back, {user.display_name or user.email}!", "success")
                 print(f"[DEBUG] Login successful for: {email}")
                 return redirect(url_for("dashboard"))
@@ -539,6 +985,7 @@ def profile():
                 user["name"] = new_name
                 users[user_email] = user
                 save_users(users)
+                sync_user_profile(user_uid, user_email, new_name, role=user.get("role", "operator"))
                 session["user_name"] = new_name
                 flash("Profile updated successfully!", "success")
         
@@ -581,6 +1028,8 @@ def intersection_monitor(intersection_id):
 @login_required
 def camera_toggle(intersection_id, lane_id):
     success = toggle_camera(intersection_id, lane_id)
+    if success:
+        record_traffic_analysis(intersection_id, analysis_mode="camera_toggle", event_duration_minutes=1)
 
     lane = None
     intersection = get_intersection(intersection_id)
@@ -620,6 +1069,12 @@ def camera_set_all(intersection_id):
     target_state = bool(enabled.get("enabled"))
 
     success = set_all_cameras(intersection_id, target_state)
+    if success:
+        record_traffic_analysis(
+            intersection_id,
+            analysis_mode="bulk_camera_enable" if target_state else "bulk_camera_disable",
+            event_duration_minutes=2,
+        )
     intersection = get_intersection(intersection_id) if success else None
     active_count = 0
     total_count = 0
@@ -688,17 +1143,21 @@ def intersection_update(intersection_id):
         flash("Name and location cannot be empty.", "error")
         return redirect(url_for("intersection_detail", intersection_id=intersection_id))
     
-    intersections = load_intersections()
-    for intersection in intersections:
-        if intersection["id"] == intersection_id:
-            intersection["name"] = name
-            intersection["location"] = location
-            save_intersections(intersections)
-            flash("Intersection updated successfully!", "success")
-            return redirect(url_for("intersection_detail", intersection_id=intersection_id))
-    
-    flash("Intersection not found.", "error")
-    return redirect(url_for("intersections"))
+    try:
+        doc_ref = db.collection(INTERSECTIONS_COLLECTION).document(intersection_id)
+        doc = doc_ref.get()
+        if not doc.exists:
+            flash("Intersection not found.", "error")
+            return redirect(url_for("intersections"))
+        doc_ref.set(
+            {"name": name, "location": location, "updated_at": _utc_now_iso()},
+            merge=True,
+        )
+        flash("Intersection updated successfully!", "success")
+        return redirect(url_for("intersection_detail", intersection_id=intersection_id))
+    except Exception:
+        flash("Intersection update failed.", "error")
+        return redirect(url_for("intersections"))
 
 
 @app.route("/intersection/delete/<intersection_id>", methods=["POST"])
@@ -707,6 +1166,37 @@ def intersection_delete(intersection_id):
     
     remove_intersection(intersection_id)
     flash("Intersection deleted successfully!", "success")
+    return redirect(url_for("intersections"))
+
+
+@app.route("/admin/firestore/force_sync", methods=["POST"])
+@login_required
+def firestore_force_sync():
+    try:
+        result = force_sync_firestore_from_json()
+    except Exception as e:
+        wants_json = (
+            request.headers.get("X-Requested-With") == "XMLHttpRequest"
+            or request.accept_mimetypes["application/json"] >= request.accept_mimetypes["text/html"]
+        )
+        if wants_json:
+            return {"ok": False, "message": f"Force sync failed: {str(e)}"}, 500
+        flash(f"Force sync failed: {str(e)}", "error")
+        return redirect(url_for("intersections"))
+
+    wants_json = (
+        request.headers.get("X-Requested-With") == "XMLHttpRequest"
+        or request.accept_mimetypes["application/json"] >= request.accept_mimetypes["text/html"]
+    )
+    if wants_json:
+        return {
+            "ok": True,
+            "message": "Firestore force sync completed.",
+            "deleted": result.get("deleted", {}),
+            "imported": result.get("imported", []),
+        }
+
+    flash("Firestore force sync completed successfully.", "success")
     return redirect(url_for("intersections"))
 
 

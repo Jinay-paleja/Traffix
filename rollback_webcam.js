@@ -5,8 +5,6 @@
   let defaultStream = null;
   /** @type {Map<string, string>} */
   const networkUrlByLane = new Map();
-  /** @type {Map<string, string>} */
-  const activeNetworkSrcByLane = new Map();
 
   function hasActiveTracks(stream) {
     return !!stream && stream.getTracks().some((track) => track.readyState === "live");
@@ -149,19 +147,6 @@
     networkUrlByLane.set(laneId, url || "");
   }
 
-  function getNetworkUrlForLane(storageKeyPrefix, laneId) {
-    return networkUrlByLane.get(laneId) || localStorage.getItem(storageKeyUrl(storageKeyPrefix, laneId)) || "";
-  }
-
-  function normalizeNetworkUrl(url) {
-    const raw = (url || "").trim();
-    if (!raw) return "";
-    // Avoid reconnecting stream for cosmetic query changes.
-    const cut = raw.indexOf("#");
-    const noHash = cut >= 0 ? raw.slice(0, cut) : raw;
-    return noHash;
-  }
-
   async function attachWebcamToVideos({
     videoSelector = "video[data-webcam='1']",
     selectSelector = "select[data-webcam-select='1']",
@@ -206,15 +191,7 @@
       const deviceVideos = videos.filter((video) => {
         const laneId = video.getAttribute("data-lane-id");
         const sourceType = localStorage.getItem(storageKeyType(storageKeyPrefix, laneId)) || "device";
-        if (sourceType !== "network") return true;
-
-        // If network source is selected but URL is missing, fallback to device mode.
-        const url = getNetworkUrlForLane(storageKeyPrefix, laneId);
-        if (!url) {
-          localStorage.setItem(storageKeyType(storageKeyPrefix, laneId), "device");
-          return true;
-        }
-        return false;
+        return sourceType !== "network";
       });
 
       if (deviceVideos.length) {
@@ -225,17 +202,13 @@
       networkImgs.forEach((img) => {
         const laneId = img.getAttribute("data-lane-id");
         if (!laneId) return;
-        const url = normalizeNetworkUrl(getNetworkUrlForLane(storageKeyPrefix, laneId));
+        const url = networkUrlByLane.get(laneId) || localStorage.getItem(storageKeyUrl(storageKeyPrefix, laneId)) || "";
         if (url) {
-          // Keep a stable stream URL so mobile/IP feeds (e.g. DroidCam) don't reconnect repeatedly.
-          const currentSrc = activeNetworkSrcByLane.get(laneId) || "";
-          if (currentSrc !== url || img.getAttribute("src") !== url) {
-            img.src = url;
-            activeNetworkSrcByLane.set(laneId, url);
-          }
+          // Cache-bust to avoid stale frames in some browsers
+          const sep = url.includes("?") ? "&" : "?";
+          img.src = `${url}${sep}t=${Date.now()}`;
         } else {
           img.removeAttribute("src");
-          activeNetworkSrcByLane.delete(laneId);
         }
       });
 
@@ -244,11 +217,7 @@
         const laneId = v.getAttribute("data-lane-id");
         if (!laneId) continue;
 
-        let sourceType = localStorage.getItem(storageKeyType(storageKeyPrefix, laneId)) || "device";
-        if (sourceType === "network" && !getNetworkUrlForLane(storageKeyPrefix, laneId)) {
-          sourceType = "device";
-          localStorage.setItem(storageKeyType(storageKeyPrefix, laneId), "device");
-        }
+        const sourceType = localStorage.getItem(storageKeyType(storageKeyPrefix, laneId)) || "device";
         if (sourceType === "network") {
           // Don't attach a device stream if lane is set to network camera.
           v.srcObject = null;
@@ -256,13 +225,7 @@
         }
 
         const deviceId = deviceIdByLane.get(laneId) || "";
-        let stream = null;
-        try {
-          stream = await getStreamForDeviceId(deviceId, constraints);
-        } catch (streamErr) {
-          // If saved device no longer exists, fallback to default camera.
-          stream = await getDefaultStream(constraints);
-        }
+        const stream = await getStreamForDeviceId(deviceId, constraints);
         v.srcObject = stream;
         v.muted = true;
         v.playsInline = true;
@@ -300,4 +263,3 @@
     storageKeyUrl,
   };
 })();
-

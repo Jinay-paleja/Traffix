@@ -1,21 +1,20 @@
-// Firebase v10 SDK for registration
-// Load after firebase-app.js (if separate), but standalone import here
+// Firebase compat SDK registration flow for Flask templates.
+const firebaseConfig = window.FIREBASE_WEB_CONFIG || {};
+const requiredConfigFields = ["apiKey", "authDomain", "projectId", "appId"];
+const missingConfigFields = requiredConfigFields.filter((key) => !firebaseConfig[key]);
 
-import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js';
-import { getAuth, createUserWithEmailAndPassword, updateProfile } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js';
+if (missingConfigFields.length) {
+  console.error("Missing Firebase web config fields:", missingConfigFields.join(", "));
+  alert("Firebase is not configured for this app yet. Please set FIREBASE_WEB_* environment variables.");
+  throw new Error("Firebase client configuration missing");
+}
 
-const firebaseConfig = {
-  apiKey: "AIzaSyC-tnjkrhHygkG60Nq0yOk0Y4W3oFqpHsI",
-  authDomain: "traffix-40acf.firebaseapp.com",
-  projectId: "traffix-40acf",
-  storageBucket: "traffix-40acf.firebasestorage.app",
-  messagingSenderId: "622309834466",
-  appId: "1:622309834466:web:04e38961b2ff6be12828bb",
-  measurementId: "G-27655CG8PK"
-};
+if (!window.firebaseAppsInitialized) {
+  firebase.initializeApp(firebaseConfig);
+  window.firebaseAppsInitialized = true;
+}
 
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
+const auth = firebase.auth();
 
 const registerForm = document.getElementById('register-form');
 if (registerForm) {
@@ -37,8 +36,8 @@ if (registerForm) {
       }
       
       console.log('Creating user...');
-      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-      await updateProfile(userCredential.user, { displayName: name });
+      const userCredential = await auth.createUserWithEmailAndPassword(email, password);
+      await userCredential.user.updateProfile({ displayName: name });
       
       console.log('User created successfully');
       alert('Account created! Redirecting to login...');
